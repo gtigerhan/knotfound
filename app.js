@@ -2,7 +2,7 @@
 "use strict";
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-const fmt = s => s < 60 ? `${Math.round(s)}s` : s < 3600 ? `${Math.floor(s/60)}m` : `${(s/3600).toFixed(1)}h`;
+const fmt = s => s < 60 ? t("{n}s", { n: Math.round(s) }) : s < 3600 ? t("{n}m", { n: Math.floor(s/60) }) : t("{n}h", { n: (s/3600).toFixed(1) });
 const clock = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
 const NOW_YEAR = 2026;
 
@@ -50,7 +50,7 @@ function userVec() {
   readKeys().forEach(k => { const w = weightOf(k); for (const f in FV[k]) u[f] = (u[f] || 0) + w * FV[k][f]; });
   return u;
 }
-const label = k => k.startsWith("node:") ? NODE[k.slice(5)].title : DOC[k].title;
+const label = k => k.startsWith("node:") ? NODE[k.slice(5)].title : dt(DOC[k]);
 
 // returns [{id, why}] — personalised, diversified, with one exploration slot
 function recommend(k = 24, { exclude = null, topic = null, q = "" } = {}) {
@@ -74,7 +74,7 @@ function recommend(k = 24, { exclude = null, topic = null, q = "" } = {}) {
     if (seen > 120) s *= 0.2; else if (seen > 10) s *= 0.5;
     let best = null, bv = 0;
     reads.forEach(r => { if (r === d.id) return; const v = weightOf(r) * cos(FV[r], FV[d.id], NRM[d.id]); if (v > bv) { bv = v; best = r; } });
-    return { id: d.id, s, why: best ? `Because you read ${label(best)}` : "" };
+    return { id: d.id, s, why: best ? t("Because you read {x}", { x: label(best) }) : "" };
   });
   // greedy diversification: penalise repeating the same main topic
   const out = [], used = {};
@@ -91,7 +91,7 @@ function recommend(k = 24, { exclude = null, topic = null, q = "" } = {}) {
     const cold = TOPICS.slice().sort((a, b) => tt[a.id] - tt[b.id])[0];
     const ex = DOCS.find(d => d.topics.includes(cold.id) && d.kind === "article" && !out.some(o => o.id === d.id) && d.id !== exclude)
             || DOCS.find(d => d.topics.includes(cold.id) && !out.some(o => o.id === d.id) && d.id !== exclude);
-    if (ex) out.splice(3, 0, { id: ex.id, why: `New to you: ${cold.label}` });
+    if (ex) out.splice(3, 0, { id: ex.id, why: t("New to you: {x}", { x: cold.label }) });
   }
   return out.slice(0, k);
 }
@@ -124,31 +124,31 @@ function borrowed(d) {
 // Length: papers = page count (≈4 min/page for maths), articles = words at 200 wpm. From scripts/build_meta.py.
 const METAS = typeof META !== "undefined" ? META : {};
 function readMin(d) { const m = METAS[d.id] || {}; return m.pages ? m.pages * 4 : m.words ? Math.max(1, Math.round(m.words / 200)) : 0; }
-const dur = mins => mins >= 60 ? `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, "0")}m` : `${mins} min`;
-function lenShort(d) { const m = METAS[d.id] || {}; return m.pages ? `${m.pages} pp` : m.words ? dur(readMin(d)) : (d.kind === "paper" ? "PDF" : "WIKI"); }
+const dur = mins => mins >= 60 ? t("{h}h {m}m", { h: Math.floor(mins / 60), m: String(mins % 60).padStart(2, "0") }) : t("{n} min", { n: mins });
+function lenShort(d) { const m = METAS[d.id] || {}; return m.pages ? t("{n} pp", { n: m.pages }) : m.words ? dur(readMin(d)) : (d.kind === "paper" ? "PDF" : "WIKI"); }
 function lenLong(d) {
   const m = METAS[d.id] || {}; if (!m.pages && !m.words) return "";
-  return `${m.pages ? m.pages + " pages" : m.words.toLocaleString() + " words"} · ~${dur(readMin(d))} read`;
+  return `${m.pages ? t("{n} pages", { n: m.pages }) : t("{n} words", { n: m.words.toLocaleString() })} · ${t("~{d} read", { d: dur(readMin(d)) })}`;
 }
 function thumb(d, hover = true) {
   let src = THUMB[d.id] || d.thumb || borrowed(d);
   if (src && !/^(https?:)?\//.test(src)) src = "/" + src;
   return `<div class="thumb">${src ? `<img loading="lazy" src="${esc(src)}" alt="">` : knotSVG(d.id, TCOLOR[d.topics[0]] || "#555")}
     <span class="badge">${lenShort(d)}</span>
-    ${hover ? `<div class="hov"><div class="hov-len">${d.kind === "paper" ? "Paper" : "Wikipedia"}${lenLong(d) ? " · " + lenLong(d) : ""}</div><p>${esc(d.abstract)}</p></div>` : ""}</div>`;
+    ${hover ? `<div class="hov"><div class="hov-len">${d.kind === "paper" ? t("Paper") : t("Wikipedia")}${lenLong(d) ? " · " + lenLong(d) : ""}</div><p>${esc(d.abstract)}</p></div>` : ""}</div>`;
 }
-const byline = d => d.kind === "article" ? "Wikipedia" : d.authors[0].split(" ").pop() + (d.authors.length > 1 ? " et al." : "");
+const byline = d => d.kind === "article" ? t("Wikipedia") : d.authors[0].split(" ").pop() + (d.authors.length > 1 ? t(" et al.") : "");
 function card(r) {
   const d = DOC[r.id], col = TCOLOR[d.topics[0]];
-  return `<div class="card" data-doc="${esc(d.id)}" title="${esc(r.why || d.title)}">${thumb(d)}
+  return `<div class="card" data-doc="${esc(d.id)}" title="${esc(r.why || dt(d))}">${thumb(d)}
     <div class="c-body"><div class="avatar" style="background:${col}">${esc(TOPIC[d.topics[0]].label[0])}</div><div style="min-width:0">
-    <div class="c-title">${esc(d.title)}</div><div class="c-meta">${esc(byline(d))} · ${esc(TOPIC[d.topics[0]].label)} · ${d.year}</div>
+    <div class="c-title">${esc(dt(d))}</div><div class="c-meta">${esc(byline(d))} · ${esc(TOPIC[d.topics[0]].label)} · ${d.year}</div>
     ${r.why ? `<div class="c-why">${esc(r.why)}</div>` : ""}</div></div></div>`;
 }
 function mini(r) {
   const d = DOC[r.id];
   return `<div class="mini" data-doc="${esc(d.id)}">${thumb(d)}<div style="min-width:0">
-    <div class="c-title">${esc(d.title)}</div><div class="c-meta">${esc(byline(d))} · ${d.year}</div>
+    <div class="c-title">${esc(dt(d))}</div><div class="c-meta">${esc(byline(d))} · ${d.year}</div>
     ${r.why ? `<div class="c-meta">${esc(r.why)}</div>` : ""}</div></div>`;
 }
 
@@ -211,15 +211,15 @@ function getList(lid) {
   if (!lid) return null;
   if (lid.startsWith("path:")) {
     const d = DOC[lid.slice(5)]; if (!d) return null;
-    return { id: lid, title: `From basics to “${d.title}”`, sub: "Built for this document", items: pathTo([d.id]) };
+    return { id: lid, title: t("From basics to “{x}”", { x: dt(d) }), sub: t("Built for this document"), items: pathTo([d.id]) };
   }
   if (lid === "foryou") {
-    const t = topInterest(); if (!t) return null;
-    const ip = introPaper(t);
-    return { id: lid, title: `Your path: ${TOPIC[t].label}`, sub: "Built from what you read", items: pathTo([ip ? ip.id : "wiki:" + TOPIC_ENTRY[t]]) };
+    const tp = topInterest(); if (!tp) return null;
+    const ip = introPaper(tp);
+    return { id: lid, title: t("Your path: {x}", { x: TOPIC[tp].label }), sub: t("Built from what you read"), items: pathTo([ip ? ip.id : "wiki:" + TOPIC_ENTRY[tp]]) };
   }
   const p = PLAYLISTS.find(x => x.id === lid); if (!p) return null;
-  return { ...p, items: pathTo(p.targets) };
+  return { ...p, title: t(p.title), sub: t(p.sub), items: pathTo(p.targets) };
 }
 const nextUndone = l => l.items.find(id => !isDone(id)) || l.items[0];
 const listHref = (id, lid) => `/watch/${encodeURIComponent(id)}?list=${encodeURIComponent(lid)}`;
@@ -227,15 +227,15 @@ function listCard(l) {
   const done = l.items.filter(isDone).length, mins = l.items.reduce((s, id) => s + readMin(DOC[id]), 0);
   const first = DOC[nextUndone(l)], goal = DOC[l.items[l.items.length - 1]];
   return `<a class="lcard" href="${listHref(first.id, l.id)}">
-    <div class="lthumb">${thumb(goal, false)}<div class="lcount"><b>${l.items.length}</b><span>steps</span><span>${dur(mins)}</span></div></div>
+    <div class="lthumb">${thumb(goal, false)}<div class="lcount"><b>${l.items.length}</b><span>${t("steps")}</span><span>${dur(mins)}</span></div></div>
     <div class="c-title">${esc(l.title)}</div>
-    <div class="c-meta">${esc(l.sub)}${done ? ` · ${done}/${l.items.length} done` : ""}</div></a>`;
+    <div class="c-meta">${esc(l.sub)}${done ? ` · ${t("{d}/{n} done", { d: done, n: l.items.length })}` : ""}</div></a>`;
 }
 
 // ================= HOME =================
 let topic = null, query = "";
 function renderChips() {
-  $("#chips").innerHTML = `<button class="chip ${!topic ? "on" : ""}" data-topic="">All</button>` +
+  $("#chips").innerHTML = `<button class="chip ${!topic ? "on" : ""}" data-topic="">${t("All")}</button>` +
     TOPICS.map(t => `<button class="chip ${topic === t.id ? "on" : ""}" data-topic="${t.id}">${esc(t.label)}</button>`).join("");
 }
 function renderHome() {
@@ -243,12 +243,12 @@ function renderHome() {
   const showShelf = !topic && !query;
   const lists = [getList("foryou"), ...PLAYLISTS.map(p => getList(p.id))].filter(Boolean);
   const recs = recommend(60, { topic, q: query });
-  $("#grid").innerHTML = recs.map(r => card(r)).join("") || `<div class="empty">No results</div>`;
+  $("#grid").innerHTML = recs.map(r => card(r)).join("") || `<div class="empty">${t("No results")}</div>`;
   if (showShelf) {
     const row = document.createElement("div");
     row.id = "shelf";
-    row.innerHTML = `<div class="shelf-head"><h2>Learning paths</h2><span>Start from the basics and build up, one step at a time</span></div>
-      <div class="shelf-wrap"><button class="sh-arrow l" aria-label="Scroll left">‹</button><div class="shelf">${lists.map(listCard).join("")}</div><button class="sh-arrow r" aria-label="Scroll right">›</button></div>`;
+    row.innerHTML = `<div class="shelf-head"><h2>${t("Learning paths")}</h2><span>${t("Start from the basics and build up, one step at a time")}</span></div>
+      <div class="shelf-wrap"><button class="sh-arrow l" aria-label="${t("Scroll left")}">‹</button><div class="shelf">${lists.map(listCard).join("")}</div><button class="sh-arrow r" aria-label="${t("Scroll right")}">›</button></div>`;
     $("#grid").appendChild(row);
     placeShelf();
     const sh = row.querySelector(".shelf"), upd = () => {
@@ -276,10 +276,10 @@ function renderListPanel() {
   const l = curList, box = $("#lpanel");
   if (!l) { box.innerHTML = ""; return; }
   const i = l.items.indexOf(watching);
-  box.innerHTML = `<div class="lp-head"><div class="lp-title">${esc(l.title)}</div><div class="c-meta">Step ${i + 1} of ${l.items.length} · ${l.items.filter(isDone).length} done</div></div>
+  box.innerHTML = `<div class="lp-head"><div class="lp-title">${esc(l.title)}</div><div class="c-meta">${t("Step {i} of {n} · {d} done", { i: i + 1, n: l.items.length, d: l.items.filter(isDone).length })}</div></div>
     <div class="lp-items">${l.items.map((id, k) => { const d = DOC[id]; return `<a class="lp-item${id === watching ? " cur" : ""}" href="${listHref(id, l.id)}">
       <span class="lp-n">${id === watching ? "▶" : isDone(id) ? "✓" : k + 1}</span>${thumb(d, false)}
-      <div style="min-width:0"><div class="c-title">${esc(d.title)}</div><div class="c-meta">${d.kind === "article" ? "Concept" : "Paper"} · ${lenShort(d)}</div></div></a>`; }).join("")}</div>`;
+      <div style="min-width:0"><div class="c-title">${esc(dt(d))}</div><div class="c-meta">${d.kind === "article" ? t("Concept") : t("Paper")} · ${lenShort(d)}</div></div></a>`; }).join("")}</div>`;
   const cur = box.querySelector(".cur"); if (cur) cur.parentNode.scrollTop = cur.offsetTop - cur.parentNode.offsetTop - 60;
 }
 function renderWatch(id, lid) {
@@ -292,21 +292,21 @@ function renderWatch(id, lid) {
     const src = d.embed + "#navpanes=0&view=FitH";
     if ($("#player").dataset.src !== src) { $("#player").src = src; $("#player").dataset.src = src; }
   } else loadArticle(d);
-  $("#w-title").textContent = d.title;
-  $("#w-meta").textContent = `${d.kind === "article" ? "Wikipedia" : d.authors.join(", ")} · ${d.year} · ${lenLong(d) || d.topics.map(t => TOPIC[t].label).join(", ")}`;
+  $("#w-title").textContent = dt(d);
+  $("#w-meta").textContent = `${d.kind === "article" ? t("Wikipedia") : d.authors.join(", ")} · ${d.year} · ${lenLong(d) || d.topics.map(t => TOPIC[t].label).join(", ")}`;
   $("#w-src").innerHTML = d.kind === "paper"
-    ? `© the authors · <a href="${esc(d.url)}" target="_blank" rel="noopener">arXiv:${esc(d.id.slice(6))}</a> · shown from arXiv.org`
-    : `Text from <a href="${esc(d.url)}" target="_blank" rel="noopener">Wikipedia</a> · CC BY-SA 4.0`;
+    ? t("© the authors · {link} · shown from arXiv.org", { link: `<a href="${esc(d.url)}" target="_blank" rel="noopener">arXiv:${esc(d.id.slice(6))}</a>` })
+    : t("Text from {link} · CC BY-SA 4.0", { link: `<a href="${esc(d.url)}" target="_blank" rel="noopener">${t("Wikipedia")}</a>` });
   $("#w-open").href = d.url;
   // next step / start-from-basics
   const pth = pathTo([id]);
   if (curList) {
     const nx = curList.items[curList.items.indexOf(id) + 1];
-    $("#w-path").innerHTML = nx ? `Next step: ${esc(DOC[nx].title)} →` : "Path complete ✓";
+    $("#w-path").innerHTML = nx ? t("Next step: {x} →", { x: esc(dt(DOC[nx])) }) : t("Path complete ✓");
     $("#w-path").href = nx ? listHref(nx, curList.id) : "/";
     $("#w-path").hidden = false;
   } else if (pth.length > 1) {
-    $("#w-path").textContent = `Start from basics (${pth.length} steps)`;
+    $("#w-path").textContent = t("Start from basics ({n} steps)", { n: pth.length });
     $("#w-path").href = listHref(pth.find(x => !isDone(x)) || pth[0], "path:" + id);
     $("#w-path").hidden = false;
   } else $("#w-path").hidden = true;
@@ -314,21 +314,46 @@ function renderWatch(id, lid) {
   $("#w-abs").textContent = d.abstract;
   $("#w-desc").open = false;
   const probs = OPEN.filter(n => d.topics.some(t => nodeTopics(n).includes(t)));
-  $("#w-problems").innerHTML = probs.length ? `<div class="related"><b>Open problems here</b>${probs.map(n => `<a class="chip" href="/map/${n.id}">${esc(n.title)}</a>`).join("")}</div>` : "";
+  $("#w-problems").innerHTML = probs.length ? `<div class="related"><b>${t("Open problems here")}</b>${probs.map(n => `<a class="chip" href="/map/${n.id}">${esc(n.title)}</a>`).join("")}</div>` : "";
   profile.last[id] = Date.now(); save();
   lastUpKey = ""; renderUpNext();
 }
 // Wikipedia articles are rendered natively from the REST API (CORS-enabled), sanitised.
 const WIKI_BY_TITLE = Object.fromEntries(DOCS.filter(d => d.kind === "article").map(d => [d.title.replace(/ /g, "_"), d.id]));
 const artCache = {};
-async function loadArticle(d) {
-  const box = $("#reader");
-  if (box.dataset.id === d.id) return;
-  box.dataset.id = d.id; box.innerHTML = `<p style="color:var(--muted)">Loading…</p>`; box.scrollTop = 0;
+// In Korean mode, use the Korean Wikipedia article when one exists (found via interlanguage links).
+const koTitles = {};
+async function koTitleOf(en) {
+  if (en in koTitles) return koTitles[en];
   try {
-    const title = d.url.split("/wiki/")[1];
-    const html = artCache[d.id] ||= await (await fetch(`https://en.wikipedia.org/api/rest_v1/page/html/${title}`)).text();
-    if (box.dataset.id !== d.id) return;
+    const r = await (await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=ko&redirects=1&format=json&origin=*&titles=${encodeURIComponent(en)}`)).json();
+    const pg = Object.values(r.query.pages)[0];
+    const kt = (pg.langlinks && pg.langlinks[0] && pg.langlinks[0]["*"]) || null;
+    if (!kt) return koTitles[en] = null;
+    // a Korean title that only redirects elsewhere (e.g. to a broader article) is not a real translation
+    const k = await (await fetch(`https://ko.wikipedia.org/w/api.php?action=query&redirects=1&format=json&origin=*&titles=${encodeURIComponent(kt)}`)).json();
+    return koTitles[en] = (k.query && k.query.redirects && k.query.redirects.length) ? null : kt;
+  } catch (e) { return koTitles[en] = null; }
+}
+async function loadArticle(d, forceEn = false) {
+  const box = $("#reader");
+  const key = d.id + (forceEn ? "|en" : "");
+  if (box.dataset.id === key) return;
+  box.dataset.id = key; box.innerHTML = `<p style="color:var(--muted)">${t("Loading…")}</p>`; box.scrollTop = 0;
+  try {
+    let host = "en", title = d.url.split("/wiki/")[1], heading = dt(d), note = "";
+    if (LANG === "ko") {
+      const kt = await koTitleOf(d.title);
+      if (box.dataset.id !== key) return;
+      if (kt && !forceEn) { host = "ko"; title = encodeURIComponent(kt.replace(/ /g, "_")); heading = kt;
+        note = ` · <span>${t("Korean Wikipedia")}</span> · <button type="button" class="linkbtn" data-wiki-lang="en">${t("Show English original")}</button>`; }
+      else if (kt) note = ` · <button type="button" class="linkbtn" data-wiki-lang="ko">${t("Show in Korean")}</button>`;
+      else note = ` · ${t("No Korean article yet, so this is the English original.")}`;
+    }
+    const base = `https://${host}.wikipedia.org/wiki/`;
+    const ck = host + ":" + title;
+    const html = artCache[ck] ||= await (await fetch(`https://${host}.wikipedia.org/api/rest_v1/page/html/${title}`)).text();
+    if (box.dataset.id !== key) return;
     const doc = new DOMParser().parseFromString(html, "text/html");
     doc.querySelectorAll(`script,style,link,meta,noscript,iframe,object,embed,form,table,.infobox,.navbox,.sidebar,.hatnote,.ambox,
       .metadata,.noprint,.mw-ref,sup.reference,.reflist,.mw-references-wrap,ol.references,.mw-editsection,.mw-empty-elt,
@@ -342,19 +367,19 @@ async function loadArticle(d) {
     doc.querySelectorAll("a[href]").forEach(a => {
       const h = a.getAttribute("href");
       const m = h.match(/^\.\/([^#?]+)/);
-      if (m && WIKI_BY_TITLE[decodeURIComponent(m[1])]) a.setAttribute("href", "/watch/" + encodeURIComponent(WIKI_BY_TITLE[decodeURIComponent(m[1])]));
-      else { a.href = m ? "https://en.wikipedia.org/wiki/" + m[1] : new URL(h, "https://en.wikipedia.org/wiki/").href; a.target = "_blank"; a.rel = "noopener"; }
+      if (host === "en" && m && WIKI_BY_TITLE[decodeURIComponent(m[1])]) a.setAttribute("href", "/watch/" + encodeURIComponent(WIKI_BY_TITLE[decodeURIComponent(m[1])]));
+      else { a.href = m ? base + m[1] : new URL(h, base).href; a.target = "_blank"; a.rel = "noopener"; }
     });
     doc.querySelectorAll("img[src^='//'],img[srcset]").forEach(i => { if (i.getAttribute("src")?.startsWith("//")) i.src = "https:" + i.getAttribute("src"); i.removeAttribute("srcset"); });
     // Lesson format: core idea (lead paragraphs + one picture), then collapsible sections to go deeper.
     const wc = el => (el.textContent.match(/\S+/g) || []).length;
     const mins = n => Math.max(1, Math.round(n / 200));
-    const SKIP = /^(references|notes|see also|external links|further reading|bibliography|sources|citations|footnotes|literature|gallery)/i;
+    const SKIP = /^(references|notes|see also|external links|further reading|bibliography|sources|citations|footnotes|literature|gallery|각주|참고 문헌|참고문헌|같이 보기|외부 링크|참고 자료|출처|더 읽을거리|읽을거리)/i;
     const secs = [...doc.body.querySelectorAll(":scope > section")];
     const lead = secs.length ? secs.shift() : doc.body;
     const figEl = doc.querySelector("figure img")?.closest("figure");
     const fig = figEl ? figEl.innerHTML : ""; if (figEl) figEl.remove();
-    const leadPs = [...lead.querySelectorAll("p")].filter(p => p.textContent.trim().length > 40).slice(0, 4);
+    const leadPs = [...lead.querySelectorAll("p")].filter(p => p.textContent.trim().length > (host === "ko" ? 15 : 40)).slice(0, 4);
     const parts = secs.map(s => {
       const h = s.querySelector(":scope > h2, :scope > .mw-heading > h2"); if (!h) return null;
       const title = h.textContent.trim(); if (SKIP.test(title)) return null;
@@ -362,15 +387,16 @@ async function loadArticle(d) {
       return s.textContent.trim().length > 60 ? { title, s } : null;
     }).filter(Boolean);
     const leadW = leadPs.reduce((a, p) => a + wc(p), 0);
-    box.innerHTML = `<h1>${esc(d.title)}</h1>
-      <div class="lesson-meta">Core idea · ${mins(leadW)} min read${parts.length ? ` · ${parts.length} sections to go deeper` : ""}</div>
+    const pageUrl = base + title;
+    box.innerHTML = `<h1>${esc(heading)}</h1>
+      <div class="lesson-meta">${t("Core idea · {m} min read", { m: mins(leadW) })}${parts.length ? t(" · {n} sections to go deeper", { n: parts.length }) : ""}${note}</div>
       ${fig ? `<figure class="lead-fig">${fig}</figure>` : ""}
       <div class="lead">${leadPs.map(p => p.outerHTML).join("")}</div>
-      ${parts.length ? `<div class="deeper">Go deeper</div>` + parts.map(p =>
-        `<details class="wsec"><summary><span>${esc(p.title)}</span><small>${mins(wc(p.s))} min</small></summary><div class="wsec-body">${p.s.innerHTML}</div></details>`).join("") : ""}
-      <p class="wfoot">Shortened from Wikipedia · CC BY-SA 4.0 · <a href="${esc(d.url)}" target="_blank" rel="noopener">Read the full article ↗</a></p>`;
+      ${parts.length ? `<div class="deeper">${t("Go deeper")}</div>` + parts.map(p =>
+        `<details class="wsec"><summary><span>${esc(p.title)}</span><small>${t("{m} min", { m: mins(wc(p.s)) })}</small></summary><div class="wsec-body">${p.s.innerHTML}</div></details>`).join("") : ""}
+      <p class="wfoot">${t("Shortened from Wikipedia · CC BY-SA 4.0 · ")}<a href="${esc(pageUrl)}" target="_blank" rel="noopener">${t("Read the full article ↗")}</a></p>`;
   } catch (e) {
-    box.innerHTML = `<p>Couldn't load this article. <a href="${esc(d.url)}" target="_blank" rel="noopener">Open on Wikipedia ↗</a></p>`;
+    box.innerHTML = `<p>${t("Couldn't load this article.")} <a href="${esc(d.url)}" target="_blank" rel="noopener">${t("Open on Wikipedia ↗")}</a></p>`;
   }
 }
 $("#reader").addEventListener("scroll", () => lastAct = Date.now(), { passive: true });
@@ -399,7 +425,7 @@ setInterval(() => {
 
 // ================= DIFFICULTY =================
 const weights = { age: .20, attention: .30, depth: .15, resistance: .25, experiment: .20 };
-const WL = { age: "Years open", attention: "Expert attention", depth: "Prerequisite depth", resistance: "Lack of progress", experiment: "Computer-testable (−)" };
+const WL = { age: t("Years open"), attention: t("Expert attention"), depth: t("Prerequisite depth"), resistance: t("Lack of progress"), experiment: t("Computer-testable (−)") };
 const nbrs = {}; NODES.forEach(n => nbrs[n.id] = new Set());
 NODES.forEach(n => n.builds.forEach(b => { if (NODE[b]) { nbrs[n.id].add(b); nbrs[b].add(n.id); } }));
 function ancestry(id, seen = new Set()) { NODE[id].builds.forEach(b => { if (NODE[b] && !seen.has(b)) { seen.add(b); ancestry(b, seen); } }); return seen; }
@@ -411,12 +437,12 @@ function difficulty(n) {
   const f = factors(n), pos = weights.age + weights.attention + weights.depth + weights.resistance || 1;
   return Math.round(100 * Math.max(0, Math.min(1, (weights.age*f.age + weights.attention*f.attention + weights.depth*f.depth + weights.resistance*f.resistance - weights.experiment*f.experiment) / pos)));
 }
-const TIERS = [[35, "Good first project"], [55, "Graduate"], [72, "Frontier"], [101, "Legendary"]];
+const TIERS = [[35, t("Good first project")], [55, t("Graduate")], [72, t("Frontier")], [101, t("Legendary")]];
 const tier = s => TIERS.find(t => s < t[0])[1];
 
 function renderProblems() {
   $("#weights").innerHTML = Object.keys(weights).map(k => `<div class="weight"><span>${WL[k]}</span><input type="range" min="0" max=".6" step=".05" value="${weights[k]}" data-w="${k}"><span>${weights[k].toFixed(2)}</span></div>`).join("");
-  $("#formula").textContent = `score = 100 × (Σ wᵢ·factorᵢ − w·computer-testable) / Σ wᵢ — inputs are editorial estimates from the cited literature`;
+  $("#formula").textContent = t("FORMULA");
   document.querySelectorAll("[data-w]").forEach(i => i.oninput = () => { weights[i.dataset.w] = +i.value; i.nextElementSibling.textContent = (+i.value).toFixed(2); listProblems(); sizeNodes(); });
   listProblems();
 }
@@ -467,15 +493,15 @@ function openPanel(id) {
   panelNode = id; profile.last["node:" + id] = Date.now();
   const docs = DOCS.filter(d => d.topics.some(t => nodeTopics(n).includes(t)))
     .sort((a, b) => dot(FV["node:" + id], FV[b.id]) - dot(FV["node:" + id], FV[a.id])).slice(0, 4);
-  let h = `<div class="status">${n.type === "open" ? `Open since ${n.yearNote || n.year}` : `Proved ${n.year}`} · ${esc(AREA[n.area].name)}</div>
+  let h = `<div class="status">${n.type === "open" ? t("Open since {y}", { y: n.yearNote || n.year }) : t("Proved {y}", { y: n.year })} · ${esc(AREA[n.area].name)}</div>
     <div class="p-title">${esc(n.title)}</div><p class="stmt">${esc(n.type === "open" ? n.statement : n.summary)}</p>`;
   if (n.type === "open") {
     const s = difficulty(n);
     h += `<div class="score"><b>${s}</b><span>/ 100 · ${tier(s)}</span></div>
-      <details><summary>First steps</summary><ol>${n.entry.map(e => `<li>${esc(e)}</li>`).join("")}</ol></details>`;
+      <details><summary>${t("First steps")}</summary><ol>${n.entry.map(e => `<li>${esc(e)}</li>`).join("")}</ol></details>`;
   }
-  if (n.builds.length) h += `<div class="sec">Builds on</div>${n.builds.map(b => `<a class="chip" href="/map/${b}">${esc(NODE[b].title)}</a>`).join("")}`;
-  h += `<div class="sec">Read</div><div class="list">${docs.map(d => mini({ id: d.id })).join("")}</div>`;
+  if (n.builds.length) h += `<div class="sec">${t("Builds on")}</div>${n.builds.map(b => `<a class="chip" href="/map/${b}">${esc(NODE[b].title)}</a>`).join("")}`;
+  h += `<div class="sec">${t("Read")}</div><div class="list">${docs.map(d => mini({ id: d.id })).join("")}</div>`;
   $("#panel-body").innerHTML = h;
   $("#panel").classList.add("on");
   highlight(); setTimeout(() => focusNode(id), 220);
@@ -489,11 +515,11 @@ function renderHistory() {
   Object.keys(profile.time).forEach(k => { if (FV[k]) Object.keys(FV[k]).filter(f => f.startsWith("t:")).forEach(f => tt[f.slice(2)] += profile.time[k]); });
   const total = Object.values(profile.time).reduce((a, b) => a + b, 0);
   const nDocs = Object.keys(profile.time).filter(k => DOC[k]).length;
-  $("#total").innerHTML = total ? `${fmt(total)}<small>total reading time across ${nDocs} document${nDocs === 1 ? "" : "s"}</small>` : "";
+  $("#total").innerHTML = total ? `${fmt(total)}<small>${t("total reading time across {n} documents", { n: nDocs })}</small>` : "";
   const top = Object.entries(tt).filter(e => e[1]).sort((a, b) => b[1] - a[1]).slice(0, 6), mx = top[0]?.[1] || 1;
   $("#topics-bars").innerHTML = top.map(([t, s]) => `<div class="tb"><span>${esc(TOPIC[t].label)}</span><div class="track"><i style="width:${100*s/mx}%"></i></div><span>${fmt(s)}</span></div>`).join("");
   const seen = Object.keys(profile.time).filter(k => DOC[k]).sort((a, b) => (profile.last[b] || 0) - (profile.last[a] || 0));
-  $("#hgrid").innerHTML = seen.map(id => card({ id })).join("") || `<div class="empty">Nothing yet. Time spent reading builds your recommendations.</div>`;
+  $("#hgrid").innerHTML = seen.map(id => card({ id })).join("") || `<div class="empty">${t("Nothing yet. Time spent reading builds your recommendations.")}</div>`;
 }
 $("#clear").onclick = () => { profile = { time: {}, last: {} }; save(); renderHistory(); };
 
@@ -520,7 +546,26 @@ function route() {
 }
 addEventListener("popstate", route);
 
+// ================= SETTINGS =================
+applyStaticI18n();
+const settingsEl = $("#settings");
+function openSettings() {
+  document.querySelectorAll("[data-lang]").forEach(b => b.classList.toggle("on", b.dataset.lang === LANG));
+  settingsEl.hidden = false;
+}
+$("#open-settings").onclick = openSettings;
+$("#close-settings").onclick = () => settingsEl.hidden = true;
+settingsEl.addEventListener("click", e => { if (e.target === settingsEl) settingsEl.hidden = true; });
+addEventListener("keydown", e => { if (e.key === "Escape") settingsEl.hidden = true; });
+document.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => {
+  if (b.dataset.lang === LANG) { settingsEl.hidden = true; return; }
+  try { localStorage.setItem("knotfound-lang", b.dataset.lang); } catch (e) {}
+  location.reload();
+});
+
 document.addEventListener("click", e => {
+  const wl = e.target.closest("[data-wiki-lang]");
+  if (wl && watching) { loadArticle(DOC[watching], wl.dataset.wikiLang === "en"); return; }
   const a = e.target.closest("a[href^='/']");
   if (a && !a.target && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) { e.preventDefault(); go(a.getAttribute("href")); return; }
   const d = e.target.closest("[data-doc]"); if (d) { go("/watch/" + encodeURIComponent(d.dataset.doc)); return; }
