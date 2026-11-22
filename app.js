@@ -443,7 +443,7 @@ const tier = s => TIERS.find(t => s < t[0])[1];
 function renderProblems() {
   $("#weights").innerHTML = Object.keys(weights).map(k => `<div class="weight"><span>${WL[k]}</span><input type="range" min="0" max=".6" step=".05" value="${weights[k]}" data-w="${k}"><span>${weights[k].toFixed(2)}</span></div>`).join("");
   $("#formula").textContent = t("FORMULA");
-  document.querySelectorAll("[data-w]").forEach(i => i.oninput = () => { weights[i.dataset.w] = +i.value; i.nextElementSibling.textContent = (+i.value).toFixed(2); listProblems(); sizeNodes(); });
+  document.querySelectorAll("[data-w]").forEach(i => i.oninput = () => { weights[i.dataset.w] = +i.value; i.nextElementSibling.textContent = (+i.value).toFixed(2); listProblems(); });
   listProblems();
 }
 function listProblems() {
@@ -452,61 +452,211 @@ function listProblems() {
      <div class="track"><i style="width:${s}%"></i></div><b>${s}</b></li>`).join("");
 }
 
-// ================= MAP =================
-const W = 1500, H = 960;
-const svg = d3.select("#map").attr("viewBox", `-40 -40 ${W + 80} ${H + 80}`);
-const root = svg.append("g");
-const zoom = d3.zoom().scaleExtent([.4, 4]).on("zoom", e => root.attr("transform", e.transform));
-svg.call(zoom).on("click", () => closePanel());
-const nodes = NODES.map(n => ({ ...n, x: AREA[n.area].x + (hash(n.id) % 60 - 30), y: AREA[n.area].y + (hash(n.id + "y") % 60 - 30) }));
-const nIdx = Object.fromEntries(nodes.map(n => [n.id, n]));
-const links = []; nodes.forEach(n => n.builds.forEach(b => nIdx[b] && links.push({ source: n.id, target: b })));
-const radius = n => n.type === "open" ? 6 + difficulty(n) / 9 : 5;
-d3.forceSimulation(nodes)
-  .force("x", d3.forceX(d => AREA[d.area].x).strength(.22)).force("y", d3.forceY(d => AREA[d.area].y).strength(.22))
-  .force("link", d3.forceLink(links).id(d => d.id).distance(80).strength(.04))
-  .force("charge", d3.forceManyBody().strength(-120)).force("collide", d3.forceCollide(d => radius(d) + 26)).stop().tick(400);
-root.append("g").selectAll("text").data(AREAS).join("text").attr("class", "area-label")
-  .attr("x", a => d3.mean(nodes.filter(n => n.area === a.id), n => n.x)).attr("y", a => d3.min(nodes.filter(n => n.area === a.id), n => n.y) - 28).text(a => a.name);
-const linkSel = root.append("g").selectAll("line").data(links).join("line").attr("class", "link")
-  .attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
-const nodeSel = root.append("g").selectAll("g").data(nodes).join("g").attr("class", d => "node " + d.type)
-  .attr("transform", d => `translate(${d.x},${d.y})`).on("click", (e, d) => { e.stopPropagation(); go("/map/" + d.id); });
-nodeSel.append("circle").attr("class", "core").attr("fill", d => d.type === "known" ? TCOLOR[nodeTopics(d)[0]] : null);
-nodeSel.append("text").attr("text-anchor", "middle").text(d => d.title.length > 30 ? d.title.slice(0, 28) + "…" : d.title);
-function sizeNodes() { nodeSel.select(".core").attr("r", radius); nodeSel.select("text").attr("y", d => radius(d) + 14); }
-sizeNodes();
+// ================= IDEA MAP =================
+// Input: a problem idea in plain words (English or Korean).
+// Output: a left-to-right map — Foundations → Known results → Open problems → Recent papers → Your idea —
+// plus the closest open problem, the most related paper and a first question to try.
+const KO2EN = [
+  ["풀린 매듭", "unknot"], ["풀림수", "unknotting number"], ["풀림", "unknotting"], ["교차수", "crossing number"], ["교차", "crossing"],
+  ["슬라이스", "slice"], ["리본", "ribbon"], ["콘코던스", "concordance"], ["다항식", "polynomial"], ["불변량", "invariant"],
+  ["호몰로지", "homology"], ["쌍곡", "hyperbolic"], ["부피", "volume"], ["수술", "surgery"], ["렌즈", "lens space"], ["땋임", "braid"],
+  ["꼬임군", "braid group"], ["알고리즘", "algorithm"], ["복잡도", "complexity"], ["컴퓨터", "computer computation"], ["계산", "computation"],
+  ["종수", "genus"], ["존스", "jones"], ["알렉산더", "alexander"], ["호바노프", "khovanov"], ["플뢰어", "floer"], ["플로어", "floer"],
+  ["교대", "alternating"], ["원환면", "torus"], ["토러스", "torus"], ["4차원", "4-dimensional slice"], ["다양체", "manifold"],
+  ["기계학습", "machine learning"], ["머신러닝", "machine learning"], ["인공지능", "machine learning neural"], ["신경망", "neural network"],
+  ["딥러닝", "deep learning neural"], ["그래프", "graph"], ["무작위", "random"], ["랜덤", "random"], ["확률", "random probability"],
+  ["통계", "statistics"], ["자이페르트", "seifert"], ["곡면", "surface"], ["링크", "link"], ["연환", "link"], ["양자", "quantum"],
+  ["바실리예프", "vassiliev"], ["유한형", "finite type"], ["검출", "detect detection"], ["알아낼", "detect"], ["구별", "distinguish detect"],
+  ["분류", "classification"], ["가법", "additive"], ["연결합", "connected sum"], ["8자", "figure-eight"], ["세잎", "trefoil"],
+  ["위성", "satellite"], ["소매듭", "prime knot"], ["색 존스", "colored jones"], ["기울기", "slope boundary"], ["코스메틱", "cosmetic"],
+  ["베르주", "berge"], ["밀노어", "milnor"], ["라스무센", "rasmussen"], ["표현", "representation"], ["기하", "geometry"], ["위상", "topology"],
+  ["원판", "disk slice"], ["단백질", "protein"], ["생물", "biology dna"], ["매듭", "knot"],
+];
+const SYN = { unknot: ["unknot", "unknotting"], ml: ["machine", "learning"], ai: ["machine", "learning", "neural"], "4d": ["4-dimensional", "slice", "concordance"],
+  "3d": ["3-manifold"], hfk: ["floer"], dna: ["dna", "biology"], untangle: ["unknotting"], untie: ["unknotting"] };
+const IDEA_STOP = new Set(("a an the of in on for to and or with is are be can could how what why which does do did i we you my our about from into " +
+  "using use used new problem problems idea want study whether its it this that there their than then also more most some any all one two " +
+  "find show prove knot knots theory mathematical mathematics").split(" "));
+const stem = w => (w.length > 4 && /s$/.test(w) && !/(ss|us|is)$/.test(w)) ? w.slice(0, -1) : w;
+function ideaTokens(s) {
+  let x = " " + String(s || "").toLowerCase() + " ";
+  KO2EN.forEach(([ko, en]) => { if (x.includes(ko)) x += " " + en + " "; });
+  const out = [];
+  x.replace(/[^a-z0-9\-\s]/g, " ").split(/\s+/).forEach(w => {
+    w = w.replace(/^-+|-+$/g, ""); if (!w) return;
+    (SYN[w] || [w]).forEach(v => { if ((v.length > 2 || /\d/.test(v)) && !IDEA_STOP.has(v)) out.push(stem(v)); });
+  });
+  return out;
+}
+let IDX = null;
+function buildIndex() {
+  const items = [];
+  DOCS.forEach(d => items.push({ key: d.id, text: [d.title, d.title, d.abstract, d.topics.join(" ")].join(" ") }));
+  NODES.forEach(n => {
+    const ti = n._en ? n._en.title : n.title, tx = n._en ? n._en.text : (n.statement || n.summary);
+    items.push({ key: "node:" + n.id, text: [ti, ti, tx, n.tags.join(" "), n.tags.join(" "), nodeTopics(n).join(" ")].join(" ") });
+  });
+  const df = {};
+  items.forEach(it => { it.tf = {}; ideaTokens(it.text).forEach(w => it.tf[w] = (it.tf[w] || 0) + 1); Object.keys(it.tf).forEach(w => df[w] = (df[w] || 0) + 1); });
+  const N = items.length;
+  items.forEach(it => {
+    let nn = 0; it.v = {};
+    for (const w in it.tf) { const v = (1 + Math.log(it.tf[w])) * Math.log(1 + N / df[w]); it.v[w] = v; nn += v * v; }
+    it.n = Math.sqrt(nn) || 1;
+  });
+  IDX = { items, by: Object.fromEntries(items.map(it => [it.key, it])) };
+}
+function scoreIdea(q) {
+  if (!IDX) buildIndex();
+  const qt = [...new Set(ideaTokens(q))];
+  const res = {};
+  IDX.items.forEach(it => { let s = 0; qt.forEach(w => { if (it.v[w]) s += it.v[w]; }); res[it.key] = s / Math.sqrt(it.n); });
+  return { res, qt };
+}
+const simKeys = (a, b) => { const A = IDX.by[a], B = IDX.by[b]; if (!A || !B) return 0; let s = 0; for (const w in A.v) if (B.v[w]) s += A.v[w] * B.v[w]; return s / (A.n * B.n); };
 
-function focusNode(id) {
-  const n = nIdx[id], el = svg.node(), box = el.getBoundingClientRect(); if (!n || !box.width) return;
-  const vb = el.viewBox.baseVal, s = Math.min(box.width / vb.width, box.height / vb.height), k = 1.5;
-  const tx = (box.width / 2 - (box.width - vb.width * s) / 2) / s + vb.x - n.x * k;
-  const ty = (box.height / 2 - (box.height - vb.height * s) / 2) / s + vb.y - n.y * k;
-  svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
+function buildIdeaMap(q) {
+  const { res, qt } = scoreIdea(q);
+  if (!qt.length) return null;
+  const sc = k => res[k] || 0;
+  const opens = OPEN.slice().sort((a, b) => sc("node:" + b.id) - sc("node:" + a.id)).filter(n => sc("node:" + n.id) > 0).slice(0, 3);
+  const papers = DOCS.filter(d => d.kind === "paper" && sc(d.id) > 0)
+    .sort((a, b) => (sc(b.id) + (b.year - 2000) * .004) - (sc(a.id) + (a.year - 2000) * .004)).slice(0, 5);
+  if (!opens.length && !papers.length) return null;
+  const knownSet = new Set();
+  opens.forEach(n => n.builds.forEach(b => NODE[b] && NODE[b].type === "known" && knownSet.add(b)));
+  NODES.filter(n => n.type === "known" && sc("node:" + n.id) > 0).sort((a, b) => sc("node:" + b.id) - sc("node:" + a.id)).forEach(n => knownSet.add(n.id));
+  const known = [...knownSet].slice(0, 5);
+  // foundations: the concept chain behind the dominant topic, plus directly matching concept articles
+  const tcount = {};
+  [...papers.map(d => d.topics[0]), ...opens.flatMap(nodeTopics), ...opens.flatMap(nodeTopics)].forEach(tp => tcount[tp] = (tcount[tp] || 0) + 1);
+  const topTopic = Object.entries(tcount).sort((a, b) => b[1] - a[1])[0]?.[0];
+  let chain = topTopic ? ancestors(TOPIC_ENTRY[topTopic]).map(c => "wiki:" + c).filter(id => DOC[id]) : [];
+  DOCS.filter(d => d.kind === "article" && sc(d.id) > 0).sort((a, b) => sc(b.id) - sc(a.id)).slice(0, 2).forEach(d => { if (!chain.includes(d.id)) chain.push(d.id); });
+  if (chain.length > 5) chain = [chain[0], ...chain.slice(-4)];
+  const cols = [
+    { key: "concept", title: t("Foundations"), items: chain.map(id => ({ key: id, id, kind: "concept" })) },
+    { key: "known", title: t("Known results"), items: known.map(id => ({ key: "node:" + id, id, kind: "known" })) },
+    { key: "open", title: t("Open problems"), items: opens.map(n => ({ key: "node:" + n.id, id: n.id, kind: "open" })) },
+    { key: "paper", title: t("Recent papers"), items: papers.map(d => ({ key: d.id, id: d.id, kind: "paper" })) },
+    { key: "idea", title: t("Your idea"), items: [{ key: "idea", kind: "idea", id: "idea" }] },
+  ].filter(c => c.items.length);
+  // edges: real "builds on" links where they exist, otherwise the closest item in the previous column
+  const edges = [];
+  for (let ci = 1; ci < cols.length; ci++) {
+    const prev = cols[ci - 1].items, cur = cols[ci].items, linked = new Set();
+    cur.forEach(it => {
+      let srcs = [];
+      if (it.kind === "idea") srcs = prev.slice(0, 3);
+      else {
+        if (it.kind === "open") srcs = prev.filter(p => p.kind === "known" && NODE[it.id].builds.includes(p.id));
+        if (!srcs.length) srcs = [prev.slice().sort((a, b) => simKeys(b.key, it.key) - simKeys(a.key, it.key))[0]];
+      }
+      srcs.forEach(p => { edges.push([p.key, it.key]); linked.add(p.key); });
+    });
+    prev.forEach(p => {
+      if (linked.has(p.key)) return;
+      const tg = cur.slice().sort((a, b) => simKeys(p.key, b.key) - simKeys(p.key, a.key))[0];
+      edges.push([p.key, tg.key]);
+    });
+  }
+  return { cols, edges, opens, papers, chain };
 }
-function highlight() {
-  nodeSel.classed("sel", d => d.id === panelNode).classed("dim", d => panelNode && d.id !== panelNode && !nbrs[panelNode].has(d.id));
-  linkSel.classed("hi", d => panelNode && (d.source.id === panelNode || d.target.id === panelNode));
+
+function ideaNodeHTML(it) {
+  if (it.kind === "idea") return `<div class="im-node idea" data-key="idea"><div class="im-k">${t("Your idea")}</div><div class="im-t">${esc(ideaQuery)}</div></div>`;
+  if (it.kind === "concept" || it.kind === "paper") {
+    const d = DOC[it.id];
+    return `<a class="im-node ${it.kind}" data-key="${esc(it.key)}" href="/watch/${encodeURIComponent(d.id)}">
+      <div class="im-k">${it.kind === "concept" ? t("Concept") : `${esc(byline(d))} · ${d.year}`}</div><div class="im-t">${esc(dt(d))}</div></a>`;
+  }
+  const n = NODE[it.id];
+  const extra = it.kind === "open" ? `<span class="im-diff">${difficulty(n)}</span>` : "";
+  return `<a class="im-node ${it.kind}" data-key="${esc(it.key)}" href="/map/${n.id}${location.search}">
+    <div class="im-k">${it.kind === "open" ? t("Open problem") : t("Proved {y}", { y: n.year })}${extra}</div><div class="im-t">${esc(n.title)}</div></a>`;
 }
+
+let ideaQuery = "", ideaMap = null;
+function renderIdea(q) {
+  ideaQuery = q || "";
+  $("#idea-input").value = ideaQuery;
+  const out = $("#idea-out");
+  if (!ideaQuery) { out.innerHTML = ""; ideaMap = null; $("#idea-empty").hidden = false; return; }
+  $("#idea-empty").hidden = true;
+  ideaMap = buildIdeaMap(ideaQuery);
+  if (!ideaMap) { out.innerHTML = `<div class="empty">${t("No close matches yet. Try words like knot, polynomial, slice, surgery or unknotting.")}</div>`; return; }
+  const { cols, opens, papers, chain } = ideaMap;
+  const top = opens[0], paper = papers[0];
+  const start = paper ? pathTo([paper.id]) : chain;
+  const firstStep = start.find(x => !isDone(x)) || start[0];
+  let cards = "";
+  if (top) cards += `<a class="im-card" href="/map/${top.id}${location.search}"><div class="im-ck">${t("Closest open problem")}</div><div class="im-ct">${esc(top.title)}</div>
+      <div class="im-cm">${t("Difficulty")} <b>${difficulty(top)}</b> · ${tier(difficulty(top))}</div></a>`;
+  if (paper) cards += `<a class="im-card" href="/watch/${encodeURIComponent(paper.id)}"><div class="im-ck">${t("Most related paper")}</div><div class="im-ct">${esc(paper.title)}</div>
+      <div class="im-cm">${esc(byline(paper))} · ${paper.year} · ${lenShort(paper)}</div></a>`;
+  if (top && top.entry && top.entry[0]) cards += `<div class="im-card q"><div class="im-ck">${t("A question to start with")}</div><div class="im-ct sm">${esc(top.entry[0])}</div>
+      ${firstStep && start.length > 1 ? `<a class="im-cm link" href="${listHref(firstStep, "path:" + (paper ? paper.id : start[start.length - 1]))}">${t("Start from basics ({n} steps)", { n: start.length })} →</a>` : ""}</div>`;
+  out.innerHTML = `<div class="im-cards">${cards}</div>
+    <div class="im-wrap"><div class="im-board" id="im-board" style="--cols:${cols.length}">
+      <svg class="im-edges" id="im-edges"></svg>
+      ${cols.map(c => `<div class="im-col" data-col="${c.key}"><div class="im-h">${c.title}</div>${c.items.map(ideaNodeHTML).join("")}</div>`).join("")}
+    </div></div>`;
+  requestAnimationFrame(drawIdeaEdges); setTimeout(drawIdeaEdges, 60);
+  if (document.fonts) document.fonts.ready.then(drawIdeaEdges);
+}
+function drawIdeaEdges() {
+  const board = $("#im-board"), svgEl = $("#im-edges"); if (!board || !ideaMap) return;
+  const bb = board.getBoundingClientRect();
+  svgEl.setAttribute("width", board.scrollWidth); svgEl.setAttribute("height", board.scrollHeight);
+  const pos = {};
+  board.querySelectorAll(".im-node").forEach(el => { const r = el.getBoundingClientRect(); pos[el.dataset.key] = { l: r.left - bb.left, r: r.right - bb.left, y: r.top - bb.top + r.height / 2 }; });
+  svgEl.innerHTML = ideaMap.edges.filter(([a, b]) => pos[a] && pos[b]).map(([a, b]) => {
+    const A = pos[a], B = pos[b], mx = (A.r + B.l) / 2;
+    return `<path data-a="${esc(a)}" data-b="${esc(b)}" d="M${A.r},${A.y} C${mx},${A.y} ${mx},${B.y} ${B.l},${B.y}"/>`;
+  }).join("");
+}
+addEventListener("resize", () => { if (view === "map") drawIdeaEdges(); });
+document.addEventListener("mouseover", e => {
+  const svgEl = $("#im-edges"); if (!svgEl || view !== "map") return;
+  const el = e.target.closest(".im-node"), k = el ? el.dataset.key : null;
+  const lit = new Set();
+  svgEl.querySelectorAll("path").forEach(p => {
+    const on = !!k && (p.dataset.a === k || p.dataset.b === k);
+    p.classList.toggle("hi", on); if (on) { lit.add(p.dataset.a); lit.add(p.dataset.b); }
+  });
+  document.querySelectorAll(".im-node").forEach(n => n.classList.toggle("dim", !!k && !lit.has(n.dataset.key)));
+});
+$("#idea-form").onsubmit = e => { e.preventDefault(); const q = $("#idea-input").value.trim(); go("/map" + (q ? "?q=" + encodeURIComponent(q) : "")); };
+$("#idea-input").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#idea-form").requestSubmit(); } });
+function renderIdeaExamples() {
+  const ex = LANG === "ko"
+    ? ["머신러닝으로 매듭의 풀림수를 예측할 수 있을까?", "존스 다항식만으로 풀린 매듭을 알아낼 수 있을까?", "4차원에서 원판을 감싸는 매듭은 어떤 것일까?", "쌍곡 부피와 양자 불변량은 어떤 관계일까?"]
+    : ["Can machine learning predict the unknotting number of a knot?", "Is the Jones polynomial enough to detect the unknot?", "Which knots bound a disk in 4 dimensions?", "How does hyperbolic volume relate to quantum invariants?"];
+  $("#idea-ex").innerHTML = `<span>${t("Try:")}</span>` + ex.map(x => `<a class="chip" href="/map?q=${encodeURIComponent(x)}">${esc(x)}</a>`).join("");
+}
+renderIdeaExamples();
+
 function openPanel(id) {
   const n = NODE[id]; if (!n) return;
   panelNode = id; profile.last["node:" + id] = Date.now();
-  const docs = DOCS.filter(d => d.topics.some(t => nodeTopics(n).includes(t)))
-    .sort((a, b) => dot(FV["node:" + id], FV[b.id]) - dot(FV["node:" + id], FV[a.id])).slice(0, 4);
+  if (!IDX) buildIndex();
+  const docs = DOCS.filter(d => d.topics.some(tp => nodeTopics(n).includes(tp)))
+    .sort((a, b) => simKeys("node:" + id, b.id) - simKeys("node:" + id, a.id)).slice(0, 4);
   let h = `<div class="status">${n.type === "open" ? t("Open since {y}", { y: n.yearNote || n.year }) : t("Proved {y}", { y: n.year })} · ${esc(AREA[n.area].name)}</div>
     <div class="p-title">${esc(n.title)}</div><p class="stmt">${esc(n.type === "open" ? n.statement : n.summary)}</p>`;
   if (n.type === "open") {
     const s = difficulty(n);
     h += `<div class="score"><b>${s}</b><span>/ 100 · ${tier(s)}</span></div>
-      <details><summary>${t("First steps")}</summary><ol>${n.entry.map(e => `<li>${esc(e)}</li>`).join("")}</ol></details>`;
+      <details open><summary>${t("First steps")}</summary><ol>${n.entry.map(e => `<li>${esc(e)}</li>`).join("")}</ol></details>`;
   }
-  if (n.builds.length) h += `<div class="sec">${t("Builds on")}</div>${n.builds.map(b => `<a class="chip" href="/map/${b}">${esc(NODE[b].title)}</a>`).join("")}`;
+  if (n.builds.length) h += `<div class="sec">${t("Builds on")}</div>${n.builds.map(b => `<a class="chip" href="/map/${b}${location.search}">${esc(NODE[b].title)}</a>`).join("")}`;
   h += `<div class="sec">${t("Read")}</div><div class="list">${docs.map(d => mini({ id: d.id })).join("")}</div>`;
   $("#panel-body").innerHTML = h;
   $("#panel").classList.add("on");
-  highlight(); setTimeout(() => focusNode(id), 220);
+  document.querySelectorAll(".im-node").forEach(el => el.classList.toggle("sel", el.dataset.key === "node:" + id));
+  setTimeout(drawIdeaEdges, 240);
 }
-function closePanel() { if (view === "map" && panelNode) go("/map"); }
+function closePanel() { if (view === "map" && panelNode) go("/map" + location.search); }
 $("#panel-x").onclick = closePanel;
 
 // ================= HISTORY =================
@@ -542,7 +692,14 @@ function route() {
   if (view === "watch") { renderWatch(id, lid); scrollTo(0, 0); }
   if (view === "problems") renderProblems();
   if (view === "history") renderHistory();
-  if (view === "map") { if (id) openPanel(id); else { panelNode = null; $("#panel").classList.remove("on"); highlight(); } }
+  if (view === "map") {
+    const q = new URLSearchParams(qs).get("q") || "";
+    // opening a problem directly (from Problems or a chip) maps that problem when no idea was typed
+    const want = q || (id && NODE[id] ? (NODE[id]._en ? NODE[id]._en.title : NODE[id].title) : "");
+    if (want !== ideaQuery || (want && !ideaMap)) renderIdea(want);
+    if (id) openPanel(id);
+    else { panelNode = null; $("#panel").classList.remove("on"); document.querySelectorAll(".im-node.sel").forEach(el => el.classList.remove("sel"));  setTimeout(drawIdeaEdges, 240); }
+  }
 }
 addEventListener("popstate", route);
 

@@ -10,7 +10,7 @@ html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 Inter,sy
 main,.view,.primary,.secondary,.narrow{min-width:0;max-width:100%}
 img,iframe,svg,table{max-width:100%}
 a{color:inherit;text-decoration:none}
-button,input{font:inherit;color:inherit}
+button,input,textarea{font:inherit;color:inherit}
 h1,h2{margin:0;font-weight:600}
 h2{font-size:20px}
 
@@ -298,3 +298,49 @@ input[type=range]{accent-color:var(--accent)}
 .seg button.on{background:var(--text);color:var(--bg)}
 .linkbtn{border:0;background:none;padding:0;color:var(--accent);cursor:pointer;font:inherit;text-decoration:underline}
 @media (max-width:640px){.nav-btn{padding:8px 12px;gap:2px}}
+
+/* idea map */
+#map-wrap{overflow-y:auto}
+.idea{max-width:1500px;margin:0 auto;padding:28px 28px 48px}
+.idea h2{font-size:26px;letter-spacing:-.02em}
+.idea-sub{color:var(--muted);margin:6px 0 16px;max-width:720px;line-height:1.5}
+.idea-form{display:flex;gap:10px;align-items:stretch;max-width:900px}
+.idea-form textarea{flex:1;resize:vertical;min-height:52px;border:1px solid var(--bg3);border-radius:14px;padding:13px 16px;background:var(--bg);font:inherit;font-size:15px;line-height:1.45;outline:none}
+.idea-form textarea:focus{border-color:var(--accent)}
+.idea-form .pill{padding:0 22px;font-size:15px}
+.idea-ex{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0 4px;max-width:1100px}
+.idea-ex span{color:var(--muted);font-size:13px;margin-right:2px}
+.idea-ex .chip{font-size:13px}
+.im-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:24px 0 18px}
+.im-card{display:block;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--bg)}
+a.im-card:hover{border-color:var(--accent)}
+.im-ck{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.im-ct{font-weight:600;font-size:16px;margin:6px 0;line-height:1.35}
+.im-ct.sm{font-weight:500;font-size:14px}
+.im-cm{color:var(--muted);font-size:13px}
+.im-cm b{color:var(--text)}
+.im-cm.link{display:inline-block;margin-top:4px;color:var(--accent);font-weight:500}
+.im-wrap{overflow-x:auto;overflow-y:hidden;border:1px solid var(--line);border-radius:16px;background:var(--bg)}
+.im-board{position:relative;display:grid;grid-template-columns:repeat(var(--cols),minmax(190px,1fr));gap:56px;padding:20px 24px 24px;min-width:calc(var(--cols) * 230px)}
+.im-edges{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.im-edges path{fill:none;stroke:var(--bg3);stroke-width:1.6;transition:stroke .15s}
+.im-edges path.hi{stroke:var(--accent);stroke-width:2.2}
+.im-col{display:flex;flex-direction:column;gap:12px;justify-content:center;position:relative;z-index:1}
+.im-h{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;align-self:flex-start}
+.im-col .im-h{position:absolute;top:-2px;transform:translateY(-100%)}
+.im-board{padding-top:44px}
+.im-node{display:block;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg);transition:border-color .15s,opacity .15s,box-shadow .15s;min-width:0}
+a.im-node:hover{border-color:var(--text)}
+.im-node.dim{opacity:.35}
+.im-node.sel{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)}
+.im-k{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.im-t{font-size:13.5px;font-weight:600;line-height:1.3;margin-top:3px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.im-node.concept{border-left:3px solid #1971c2}
+.im-node.known{border-left:3px solid var(--muted)}
+.im-node.open{border-left:3px dashed var(--accent)}
+.im-node.paper{border-left:3px solid #2f9e44}
+.im-node.idea{background:var(--accent);border-color:var(--accent);color:#fff}
+.im-node.idea .im-k{color:rgba(255,255,255,.8)}
+.im-diff{background:var(--accent);color:#fff;border-radius:999px;padding:0 6px;font-weight:700}
+#v-map.on #map-wrap{display:block}
+@media (max-width:640px){.idea{padding:18px 12px 32px}.idea-form{flex-direction:column}.idea-form .pill{padding:10px}}

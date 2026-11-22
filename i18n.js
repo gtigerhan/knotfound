@@ -76,6 +76,20 @@ const KO_WIKI = { "Knot theory": "매듭 이론", "Reidemeister move": "라이�
   "Link concordance": "링크 콘코던스", "Conway knot": "콘웨이 매듭", "Dehn surgery": "덴 수술", "Lens space": "렌즈 공간", "Berge knot": "베르주 매듭",
   "Hyperbolic link": "쌍곡 링크", "Figure-eight knot (mathematics)": "8자 매듭", "Hyperbolic volume": "쌍곡 부피", "Volume conjecture": "부피 추측" };
 const dt = d => (LANG === "ko" && d.kind === "article" && KO_WIKI[d.title]) || d.title;
+// keep the English text of every map item for matching ideas, whatever the display language
+NODES.forEach(n => n._en = { title: n.title, text: n.statement || n.summary || "" });
+Object.assign(KO, {
+  "Idea map": "아이디어 지도",
+  "Turn an idea into a research map": "아이디어를 연구 지도로",
+  "Describe a problem you'd like to work on. You'll get what it builds on, what's known, what's still open and the latest papers.":
+    "풀고 싶은 문제를 적어 보세요. 기반 개념, 알려진 결과, 아직 열린 문제, 최신 논문을 한눈에 보여 드립니다.",
+  "e.g. Can machine learning predict the unknotting number of a knot?": "예: 머신러닝으로 매듭의 풀림수를 예측할 수 있을까?",
+  "Map it": "지도 만들기", "Try:": "예시:",
+  "Foundations": "기초 개념", "Known results": "알려진 결과", "Open problems": "미해결 문제", "Recent papers": "최신 논문", "Your idea": "나의 아이디어",
+  "Open problem": "미해결 문제", "Closest open problem": "가장 가까운 미해결 문제", "Most related paper": "가장 관련 있는 논문",
+  "A question to start with": "시작해 볼 질문", "Difficulty": "난이도",
+  "No close matches yet. Try words like knot, polynomial, slice, surgery or unknotting.": "가까운 결과를 찾지 못했어요. 매듭, 다항식, 슬라이스, 수술, 풀림수 같은 단어를 넣어 보세요.",
+});
 
 if (LANG === "ko") {
   const KO_TOPIC = { concordance: "슬라이스·콘코던스", khovanov: "호바노프 호몰로지", floer: "매듭 플뢰어", quantum: "존스·양자 불변량",
