@@ -448,7 +448,6 @@ const tier = s => TIERS.find(t => s < t[0])[1];
 
 function renderProblems() {
   $("#weights").innerHTML = Object.keys(weights).map(k => `<div class="weight"><span>${WL[k]}</span><input type="range" min="0" max=".6" step=".05" value="${weights[k]}" data-w="${k}"><span>${weights[k].toFixed(2)}</span></div>`).join("");
-  $("#formula").textContent = t("FORMULA");
   document.querySelectorAll("[data-w]").forEach(i => i.oninput = () => { weights[i.dataset.w] = +i.value; i.nextElementSibling.textContent = (+i.value).toFixed(2); listProblems(); });
   listProblems();
 }
