@@ -401,3 +401,6 @@ a.b:hover{background:var(--bg3)}
 .set-list{border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .set-list .setting{padding:16px 18px;border-bottom:1px solid var(--line);font-size:15px}
 .set-list .setting:last-child{border-bottom:0}
+/* idea bubble: tail centered on the left edge, where the lines arrive */
+.im-node.idea{border-radius:18px}
+.im-node.idea::before{bottom:auto;top:50%;transform:translateY(-50%);left:-8px;border-width:8px;border-left:0}

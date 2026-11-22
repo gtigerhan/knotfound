@@ -613,8 +613,8 @@ function drawIdeaEdges() {
   const pos = {};
   board.querySelectorAll(".im-node").forEach(el => { const r = el.getBoundingClientRect(); pos[el.dataset.key] = { l: r.left - bb.left, r: r.right - bb.left, y: r.top - bb.top + r.height / 2 }; });
   svgEl.innerHTML = ideaMap.edges.filter(([a, b]) => pos[a] && pos[b]).map(([a, b]) => {
-    const A = pos[a], B = pos[b], mx = (A.r + B.l) / 2;
-    return `<path data-a="${esc(a)}" data-b="${esc(b)}" d="M${A.r},${A.y} C${mx},${A.y} ${mx},${B.y} ${B.l},${B.y}"/>`;
+    const A = pos[a], B = pos[b], bl = b === "idea" ? B.l - 8 : B.l, mx = (A.r + bl) / 2;
+    return `<path data-a="${esc(a)}" data-b="${esc(b)}" d="M${A.r},${A.y} C${mx},${A.y} ${mx},${B.y} ${bl},${B.y}"/>`;
   }).join("");
 }
 addEventListener("resize", () => { if (view === "map") drawIdeaEdges(); });
