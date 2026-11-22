@@ -4,6 +4,7 @@
     { "source": "/map", "destination": "/index.html" },
     { "source": "/map/:path*", "destination": "/index.html" },
     { "source": "/problems", "destination": "/index.html" },
-    { "source": "/history", "destination": "/index.html" }
+    { "source": "/history", "destination": "/index.html" },
+    { "source": "/settings", "destination": "/index.html" }
   ]
 }

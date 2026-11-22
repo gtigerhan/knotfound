@@ -396,3 +396,8 @@ a.b:hover{background:var(--bg3)}
 .im-node.idea .im-t{font-size:14px;-webkit-line-clamp:6}
 @media (max-width:640px){.idea-hero{padding-top:2vh}.prompt{padding-left:16px}.b-doc{grid-template-columns:90px minmax(0,1fr)}}
 .idea-hero h2{margin-bottom:28px}
+
+/* settings page */
+.set-list{border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.set-list .setting{padding:16px 18px;border-bottom:1px solid var(--line);font-size:15px}
+.set-list .setting:last-child{border-bottom:0}

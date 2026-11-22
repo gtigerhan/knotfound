@@ -4,7 +4,7 @@ import http.server, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-APP_ROUTES = ("/watch/", "/map", "/problems", "/history")
+APP_ROUTES = ("/watch/", "/map", "/problems", "/history", "/settings")
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):

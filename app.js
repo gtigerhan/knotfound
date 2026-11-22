@@ -686,7 +686,7 @@ function route() {
   const id = arg ? decodeURIComponent(hpath.split("/").slice(2).join("/")) : null;
   const lid = new URLSearchParams(qs).get("list");
   view = v === "" ? "home" : v;
-  if (!["home", "watch", "map", "problems", "history"].includes(view)) view = "home";
+  if (!["home", "watch", "map", "problems", "history", "settings"].includes(view)) view = "home";
   document.querySelectorAll(".view").forEach(s => s.classList.toggle("on", s.id === "v-" + view));
   document.querySelectorAll("[data-nav]").forEach(a => a.classList.toggle("on", a.dataset.nav === view));
   if (view !== "watch") { watching = null; }
@@ -694,6 +694,7 @@ function route() {
   if (view === "watch") { renderWatch(id, lid); scrollTo(0, 0); }
   if (view === "problems") renderProblems();
   if (view === "history") renderHistory();
+  if (view === "settings") renderSettings();
   if (view === "map") {
     const q = new URLSearchParams(qs).get("q") || "";
     // opening a problem directly (from Problems or a chip) maps that problem when no idea was typed
@@ -707,17 +708,11 @@ addEventListener("popstate", route);
 
 // ================= SETTINGS =================
 applyStaticI18n();
-const settingsEl = $("#settings");
-function openSettings() {
+function renderSettings() {
   document.querySelectorAll("[data-lang]").forEach(b => b.classList.toggle("on", b.dataset.lang === LANG));
-  settingsEl.hidden = false;
 }
-$("#open-settings").onclick = openSettings;
-$("#close-settings").onclick = () => settingsEl.hidden = true;
-settingsEl.addEventListener("click", e => { if (e.target === settingsEl) settingsEl.hidden = true; });
-addEventListener("keydown", e => { if (e.key === "Escape") settingsEl.hidden = true; });
 document.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => {
-  if (b.dataset.lang === LANG) { settingsEl.hidden = true; return; }
+  if (b.dataset.lang === LANG) return;
   try { localStorage.setItem("knotfound-lang", b.dataset.lang); } catch (e) {}
   location.reload();
 });
