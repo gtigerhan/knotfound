@@ -1,7 +1,8 @@
 """Fetch real knot-theory documents (arXiv papers + Wikipedia articles) into feed.js.
-Run: python scripts/build_feed.py
+Run: python scripts/build_feed.py              (rebuild everything)
+     python scripts/build_feed.py --only a,b    (fetch only these topics and merge into the existing feed.js)
 """
-import json, re, time, urllib.error, urllib.parse, urllib.request
+import json, re, sys, time, urllib.error, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -10,6 +11,9 @@ NS = {"a": "http://www.w3.org/2005/Atom"}
 
 # topic id -> (label, arXiv query, wikipedia titles)
 TOPICS = {
+    "beginner": ("Hands-on basics", 'cat:math.GT AND (ti:tricolorability OR ti:"Fox coloring" OR ti:"Fox colorings" OR ti:"stick number" OR ti:"knot table" OR ti:"bridge number")',
+                 ["Unknot", "Tricolorability", "Fox n-coloring", "Writhe", "Knot tabulation", "Stick number", "Bridge number"]),
+    "grid": ("Grid diagrams & arc index", 'ti:"arc index" OR ti:"grid diagram" OR ti:"grid diagrams" OR ti:"arc presentation" OR ti:"grid number"', []),
     "concordance": ("Slice & concordance", 'cat:math.GT AND (ti:slice OR ti:concordance OR ti:ribbon)',
                     ["Slice knot", "Ribbon knot", "Knot concordance", "Conway knot"]),
     "khovanov": ("Khovanov homology", 'cat:math.GT AND ti:Khovanov', ["Khovanov homology"]),
@@ -77,8 +81,15 @@ def wiki(title):
         "embed": d["content_urls"]["mobile"]["page"], "url": page,
     }
 
+ONLY = None
+if "--only" in sys.argv: ONLY = sys.argv[sys.argv.index("--only") + 1].split(",")
 docs, seen = [], {}
+FEED = Path(__file__).resolve().parent.parent / "feed.js"
+if ONLY and FEED.exists():
+    docs = json.loads(re.search(r"const DOCS = (\[.*\]);", FEED.read_text(encoding="utf-8"), re.S).group(1))
+    seen = {d["id"]: d for d in docs}
 for tid, (label, q, wtitles) in TOPICS.items():
+    if ONLY and tid not in ONLY: continue
     print(tid)
     for w in wtitles:
         if "wiki:" + w in seen: seen["wiki:" + w]["topics"].append(tid); continue

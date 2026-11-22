@@ -31,6 +31,8 @@ const KO = {
   "Road to knot Floer homology": "매듭 플뢰어 호몰로지로 가는 길", "Floer theory for knots": "매듭을 위한 플뢰어 이론",
   "Road to the volume conjecture": "부피 추측으로 가는 길", "Quantum meets hyperbolic": "양자와 쌍곡 기하의 만남",
   "Hyperbolic knots": "쌍곡 매듭", "Geometry of knot complements": "매듭 여공간의 기하",
+  "Hands-on knot theory": "직접 해 보는 매듭 이론", "Draw, color and count": "그리고, 색칠하고, 세어 보기",
+  "Grid diagrams & arc index": "그물그림과 호지수", "Knots drawn on a grid": "격자 위에 그리는 매듭",
   "Dehn surgery & lens spaces": "덴 수술과 렌즈 공간", "Building 3-manifolds from knots": "매듭으로 3차원 다양체 만들기",
   // reading page
   "Step {i} of {n} · {d} done": "{n}단계 중 {i}단계 · {d}개 완료",
@@ -74,6 +76,8 @@ const KO_WIKI = { "Knot theory": "매듭 이론", "Reidemeister move": "라이�
   "Knot complement": "매듭 여공간", "Braid group": "땋임군", "Borromean rings": "보로메오 고리", "Finite type invariant": "유한형 불변량",
   "Khovanov homology": "호바노프 호몰로지", "Floer homology": "플뢰어 호몰로지", "Slice knot": "슬라이스 매듭", "Ribbon knot": "리본 매듭",
   "Link concordance": "링크 콘코던스", "Conway knot": "콘웨이 매듭", "Dehn surgery": "덴 수술", "Lens space": "렌즈 공간", "Berge knot": "베르주 매듭",
+  "Unknot": "풀린 매듭", "Tricolorability": "삼색 칠하기", "Fox n-coloring": "폭스 n-색칠", "Writhe": "꼬임수",
+  "Knot tabulation": "매듭 표", "Stick number": "막대수", "Bridge number": "다리수",
   "Hyperbolic link": "쌍곡 링크", "Figure-eight knot (mathematics)": "8자 매듭", "Hyperbolic volume": "쌍곡 부피", "Volume conjecture": "부피 추측" };
 const dt = d => (LANG === "ko" && d.kind === "article" && KO_WIKI[d.title]) || d.title;
 // keep the English text of every map item for matching ideas, whatever the display language
@@ -94,20 +98,29 @@ Object.assign(KO, {
 });
 
 if (LANG === "ko") {
-  const KO_TOPIC = { concordance: "슬라이스·콘코던스", khovanov: "호바노프 호몰로지", floer: "매듭 플뢰어", quantum: "존스·양자 불변량",
+  const KO_TOPIC = { beginner: "손으로 하는 기초", grid: "그물그림·호지수", concordance: "슬라이스·콘코던스", khovanov: "호바노프 호몰로지", floer: "매듭 플뢰어", quantum: "존스·양자 불변량",
     volume: "부피 추측", hyperbolic: "쌍곡 매듭", surgery: "덴 수술", unknotting: "풀림", classical: "알렉산더·자이페르트",
     diagrams: "다이어그램·교차수", braids: "땋임", vassiliev: "바실리예프", algorithms: "알고리즘" };
   TOPICS.forEach(x => { if (KO_TOPIC[x.id]) x.label = KO_TOPIC[x.id]; });
 
   const KO_AREA = { classical: "고전 불변량", diagrams: "다이어그램과 교차수", unknotting: "풀림과 국소 이동", quantum: "양자 불변량",
     vassiliev: "유한형 불변량", khovanov: "호바노프 호몰로지", hfk: "매듭 플뢰어 호몰로지", hyperbolic: "쌍곡 기하",
-    surgery: "덴 수술", concordance: "콘코던스와 4차원", computation: "알고리즘과 복잡도" };
+    surgery: "덴 수술", concordance: "콘코던스와 4차원", computation: "알고리즘과 복잡도", grid: "그물그림과 호지수" };
   AREAS.forEach(a => { if (KO_AREA[a.id]) a.name = KO_AREA[a.id]; });
 
-  const KO_NOTE = { "classical (knot-table era)": "고전 (매듭표 시대)", "c. 1970s": "1970년대경", "ongoing (KnotInfo)": "진행 중 (KnotInfo)" };
+  const KO_NOTE = { "classical (knot-table era)": "고전 (매듭표 시대)", "c. 1970s": "1970년대경", "ongoing (KnotInfo)": "진행 중 (KnotInfo)", "ongoing (tables)": "진행 중 (표 작성)" };
 
   // [title, summary-or-statement, entry questions (open problems only)]
   const KO_NODE = {
+    "reidemeister-thm": ["라이데마이스터 정리", "두 다이어그램이 같은 매듭을 나타낼 필요충분조건은 세 가지 라이데마이스터 이동으로 서로 바꿀 수 있다는 것입니다. 그래서 다이어그램에서 계산한 값이 세 이동에서 변하지 않으면 매듭 불변량이 됩니다."],
+    "tricolor": ["삼색 칠하기는 매듭 불변량이다", "각 교차점에서 세 색이 모두 같거나 모두 다르도록 가닥을 세 가지 색으로 칠합니다. 이것이 가능한지는 라이데마이스터 이동에서 변하지 않으므로, 세잎매듭이 정말로 꼬여 있음을 증명합니다."],
+    "arc-alt": ["교대 매듭의 호지수 = 교차수 + 2", "교대 매듭의 호지수(가장 작은 그물그림의 크기)는 교차수에 2를 더한 값입니다. 하한은 Morton–Beltrami가 카우프만 다항식으로, 상한 c + 2는 Bae–Park가 분리되지 않은 모든 링크에 대해 증명했습니다."],
+    "arc-nonalt": ["비교대 소매듭의 호지수 ≤ 교차수", "비교대 소매듭의 호지수는 교차수 이하이므로, 소매듭이 교대 매듭일 필요충분조건은 호지수가 c + 2인 것입니다. Jin–Park는 호지수 11까지의 소매듭 표도 만들었습니다."],
+    "grid-hfk": ["그물그림으로 매듭 플뢰어 호몰로지를 계산한다", "매듭 플뢰어 호몰로지는 원래 정칙 원판으로 정의되었지만, 그물그림 위에서는 빈 직사각형을 세는 것만으로 완전히 조합적으로 계산할 수 있습니다."],
+    "arc-tables": ["호지수 표 확장하기", "기존 표를 넘어서는 소매듭들의 호지수(최소 그물그림 크기)를 결정하고, 각각의 최소 그물그림을 찾아라.",
+      ["세잎매듭과 8자 매듭의 그물그림을 손으로 그려 호지수가 5와 6임을 확인하세요.", "그물그림을 매듭으로 바꾸고 SnapPy나 KnotInfo로 어떤 매듭인지 판별하는 프로그램을 만드세요.", "현재 표보다 교차수가 큰 비교대 매듭의 작은 그물그림을 탐색하세요."]],
+    "stick-number": ["작은 매듭의 막대수", "아직 알려지지 않은 작은 매듭들의 막대수(공간에서 매듭을 만드는 데 필요한 최소 직선 선분 수)를 구하라.",
+      ["빨대나 코드로 직선 막대 6개를 이어 세잎매듭을 만들어 보세요. 6이 세잎매듭의 막대수입니다.", "교차수로 나타낸 막대수의 알려진 하한을 찾아 작은 매듭에서 확인해 보세요.", "무작위 다각형을 컴퓨터로 탐색해 7·8교차 매듭을 더 적은 막대로 만드는 방법을 찾아보세요."]],
     "alexander-poly": ["알렉산더 다항식", "최초의 다항식 매듭 불변량으로, 자이페르트 행렬이나 다이어그램에서 계산합니다. 많은 매듭을 구별하지만 Δ=1인 매듭은 모두 풀린 매듭처럼 보입니다."],
     "jones-poly": ["존스 다항식", "작용소 대수 연구에서 발견되었고 카우프만 괄호의 스케인 관계로 계산할 수 있습니다. 양자 위상수학의 출발점입니다."],
     "tait": ["테이트 추측", "기약 교대 다이어그램은 교차수가 최소이고, 꼬임수는 불변량이며, 두 기약 교대 다이어그램은 플라이프로 연결됩니다. 테이트 이후 약 100년 만에 존스 다항식으로 해결되었습니다."],

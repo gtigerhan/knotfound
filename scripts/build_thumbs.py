@@ -62,7 +62,7 @@ def paper_thumb(d):
     aid = d["id"].split(":", 1)[1]
     pdf = CACHE / (safe(aid) + ".pdf")
     if not pdf.exists():
-        pdf.write_bytes(get(f"https://export.arxiv.org/pdf/{aid}"))
+        pdf.write_bytes(get(f"https://arxiv.org/pdf/{aid}"))
         time.sleep(1.0)
     doc = pymupdf.open(pdf)
     for pno in range(min(len(doc), 30)):

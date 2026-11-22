@@ -14,11 +14,11 @@ const TOPIC = Object.fromEntries(TOPICS.map(t => [t.id, t]));
 const AREA = Object.fromEntries(AREAS.map(a => [a.id, a]));
 const NODE = Object.fromEntries(NODES.map(n => [n.id, n]));
 const OPEN = NODES.filter(n => n.type === "open");
-const TCOLOR = { concordance:"#e8590c", khovanov:"#c2255c", floer:"#e03131", quantum:"#7048e8", volume:"#5f3dc4", hyperbolic:"#2f9e44",
+const TCOLOR = { beginner:"#2b8a3e", grid:"#f76707", concordance:"#e8590c", khovanov:"#c2255c", floer:"#e03131", quantum:"#7048e8", volume:"#5f3dc4", hyperbolic:"#2f9e44",
   surgery:"#f08c00", unknotting:"#0c8599", classical:"#1971c2", diagrams:"#4263eb", braids:"#9c36b5", vassiliev:"#862e9c", algorithms:"#495057" };
 const AREA_TOPIC = { classical:"classical", diagrams:"diagrams", unknotting:"unknotting", quantum:"quantum", vassiliev:"vassiliev",
-  khovanov:"khovanov", hfk:"floer", hyperbolic:"hyperbolic", surgery:"surgery", concordance:"concordance", computation:"algorithms" };
-const nodeTopics = n => n.id === "volume-conj" ? ["volume", "hyperbolic"] : [AREA_TOPIC[n.area]];
+  khovanov:"khovanov", hfk:"floer", hyperbolic:"hyperbolic", surgery:"surgery", concordance:"concordance", computation:"algorithms", grid:"grid" };
+const nodeTopics = n => n.id === "volume-conj" ? ["volume", "hyperbolic"] : n.tags.includes("beginner") ? [AREA_TOPIC[n.area], "beginner"] : [AREA_TOPIC[n.area]];
 
 // ---------- profile (dwell time) ----------
 const STORE = "knotfound-v1";
@@ -170,11 +170,14 @@ const PREREQ = {
   "Dehn surgery": ["Knot complement"], "Lens space": ["Dehn surgery"], "Berge knot": ["Lens space", "Torus knot"],
   "Hyperbolic link": ["Knot complement"], "Figure-eight knot (mathematics)": ["Hyperbolic link"],
   "Hyperbolic volume": ["Hyperbolic link"], "Volume conjecture": ["Hyperbolic volume", "Jones polynomial"],
+  "Unknot": ["Knot theory"], "Writhe": ["Reidemeister move"], "Tricolorability": ["Reidemeister move", "Trefoil knot"],
+  "Fox n-coloring": ["Tricolorability"], "Knot tabulation": ["Crossing number (knot theory)"], "Stick number": ["Crossing number (knot theory)"],
+  "Bridge number": ["Knot invariant"],
 };
 const TOPIC_ENTRY = { concordance: "Slice knot", khovanov: "Khovanov homology", floer: "Floer homology", quantum: "Jones polynomial",
   volume: "Volume conjecture", hyperbolic: "Hyperbolic link", surgery: "Dehn surgery", unknotting: "Unknotting number",
   classical: "Alexander polynomial", diagrams: "Crossing number (knot theory)", braids: "Braid group", vassiliev: "Finite type invariant",
-  algorithms: "Unknotting problem" };
+  algorithms: "Unknotting problem", beginner: "Tricolorability", grid: "Alternating knot" };
 const conceptOf = d => d.kind === "article" ? d.title : TOPIC_ENTRY[d.topics[0]];
 function ancestors(c, out = [], seen = new Set()) {
   if (seen.has(c)) return out; seen.add(c);
@@ -192,6 +195,8 @@ function pathTo(targets) {
   return items;
 }
 const PLAYLISTS = [
+  { id: "handson", title: "Hands-on knot theory", sub: "Draw, color and count", targets: ["wiki:Unknot", "wiki:Tricolorability", "wiki:Fox n-coloring", "wiki:Stick number", "wiki:Knot tabulation"] },
+  { id: "grid", title: "Grid diagrams & arc index", sub: "Knots drawn on a grid", targets: ["wiki:Alternating knot"], topic: "grid" },
   { id: "zero", title: "Knot theory from zero", sub: "No background needed", targets: ["wiki:Tait conjectures"] },
   { id: "invariants", title: "Polynomial invariants", sub: "Alexander, Jones, HOMFLY", targets: ["wiki:Alexander polynomial", "wiki:Kauffman polynomial"] },
   { id: "khovanov", title: "Road to Khovanov homology", sub: "From diagrams to homology", targets: ["arxiv:1107.1524"] },
@@ -219,7 +224,8 @@ function getList(lid) {
     return { id: lid, title: t("Your path: {x}", { x: TOPIC[tp].label }), sub: t("Built from what you read"), items: pathTo([ip ? ip.id : "wiki:" + TOPIC_ENTRY[tp]]) };
   }
   const p = PLAYLISTS.find(x => x.id === lid); if (!p) return null;
-  return { ...p, title: t(p.title), sub: t(p.sub), items: pathTo(p.targets) };
+  const targets = p.topic ? [...p.targets, ...DOCS.filter(d => d.kind === "paper" && d.topics.includes(p.topic)).slice(0, 3).map(d => d.id)] : p.targets;
+  return { ...p, title: t(p.title), sub: t(p.sub), items: pathTo(targets) };
 }
 const nextUndone = l => l.items.find(id => !isDone(id)) || l.items[0];
 const listHref = (id, lid) => `/watch/${encodeURIComponent(id)}?list=${encodeURIComponent(lid)}`;
@@ -470,7 +476,12 @@ const KO2EN = [
   ["분류", "classification"], ["가법", "additive"], ["연결합", "connected sum"], ["8자", "figure-eight"], ["세잎", "trefoil"],
   ["위성", "satellite"], ["소매듭", "prime knot"], ["색 존스", "colored jones"], ["기울기", "slope boundary"], ["코스메틱", "cosmetic"],
   ["베르주", "berge"], ["밀노어", "milnor"], ["라스무센", "rasmussen"], ["표현", "representation"], ["기하", "geometry"], ["위상", "topology"],
-  ["원판", "disk slice"], ["단백질", "protein"], ["생물", "biology dna"], ["매듭", "knot"],
+  ["원판", "disk slice"], ["단백질", "protein"], ["생물", "biology dna"],
+  ["그물그림", "grid diagram"], ["그물 그림", "grid diagram"], ["격자", "grid"], ["호지수", "arc index"], ["호 표현", "arc presentation"],
+  ["기약", "reduced"], ["최소", "minimal"], ["막대수", "stick number"], ["막대", "stick"], ["삼색", "tricolorability coloring"],
+  ["3색", "tricolorability coloring"], ["색칠", "coloring"], ["칠하", "coloring"], ["색깔", "coloring"], ["라이데마이스터", "reidemeister"], ["다리수", "bridge number"],
+  ["매듭표", "knot table tabulation"], ["매듭 표", "knot table tabulation"], ["꼬임수", "writhe"], ["교차점", "crossing"],
+  ["다이어그램", "diagram"], ["그림", "diagram"], ["매듭", "knot"],
 ];
 const SYN = { unknot: ["unknot", "unknotting"], ml: ["machine", "learning"], ai: ["machine", "learning", "neural"], "4d": ["4-dimensional", "slice", "concordance"],
   "3d": ["3-manifold"], hfk: ["floer"], dna: ["dna", "biology"], untangle: ["unknotting"], untie: ["unknotting"] };
@@ -523,9 +534,12 @@ function buildIdeaMap(q) {
   const papers = DOCS.filter(d => d.kind === "paper" && sc(d.id) > 0)
     .sort((a, b) => (sc(b.id) + (b.year - 2000) * .004) - (sc(a.id) + (a.year - 2000) * .004)).slice(0, 5);
   if (!opens.length && !papers.length) return null;
+  // directly matching results first, then what the open problems build on, then weaker matches
   const knownSet = new Set();
+  const knownRanked = NODES.filter(n => n.type === "known" && sc("node:" + n.id) > 0).sort((a, b) => sc("node:" + b.id) - sc("node:" + a.id));
+  knownRanked.slice(0, 3).forEach(n => knownSet.add(n.id));
   opens.forEach(n => n.builds.forEach(b => NODE[b] && NODE[b].type === "known" && knownSet.add(b)));
-  NODES.filter(n => n.type === "known" && sc("node:" + n.id) > 0).sort((a, b) => sc("node:" + b.id) - sc("node:" + a.id)).forEach(n => knownSet.add(n.id));
+  knownRanked.forEach(n => knownSet.add(n.id));
   const known = [...knownSet].slice(0, 5);
   // foundations: the concept chain behind the dominant topic, plus directly matching concept articles
   const tcount = {};
