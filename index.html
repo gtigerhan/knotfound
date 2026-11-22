@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KnotFound</title>
+<meta name="description" content="KnotFound: knot theory papers and articles, a map of what's known and open, and a difficulty ranking of open problems.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><path d='M20 5c8 0 12 7 9 13s-15 9-18 15 3 6 9 4 12-9 9-17S12 8 9 14s3 13 11 19' fill='none' stroke='%23e5484d' stroke-width='4' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#/">
+    <svg viewBox="0 0 40 40" class="logo" aria-hidden="true"><path d="M20 5c8 0 12 7 9 13s-15 9-18 15 3 6 9 4 12-9 9-17S12 8 9 14s3 13 11 19" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>
+    <span>KnotFound</span>
+  </a>
+  <form class="search" id="search-form">
+    <input id="search" type="search" placeholder="Search" autocomplete="off">
+    <button aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
+  </form>
+  <div class="top-spacer"></div>
+</header>
+
+<nav class="side">
+  <a href="#/" data-nav="home"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></a>
+  <a href="#/map" data-nav="map"><svg viewBox="0 0 24 24"><circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="17" r="2.5"/><path d="M8 8l3 7M16 8l-3 7M8.5 7h7"/></svg><span>Map</span></a>
+  <a href="#/problems" data-nav="problems"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><span>Problems</span></a>
+  <a href="#/history" data-nav="history"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg><span>History</span></a>
+</nav>
+
+<main>
+  <section id="v-home" class="view">
+    <div class="chips" id="chips"></div>
+
+    <div class="grid" id="grid"></div>
+    <footer class="foot">Papers from <a href="https://arxiv.org" target="_blank" rel="noopener">arXiv</a>. Thank you to arXiv for use of its open access interoperability. Each paper remains © its authors and opens from arXiv.org. Articles from <a href="https://en.wikipedia.org" target="_blank" rel="noopener">Wikipedia</a> under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.</footer>
+  </section>
+
+  <section id="v-watch" class="view">
+    <div class="watch">
+      <div class="primary">
+        <div class="player"><iframe id="player" title="Document" referrerpolicy="no-referrer"></iframe><article id="reader" class="reader"></article></div>
+        <h1 id="w-title"></h1>
+        <div class="w-meta"><span id="w-meta"></span><a id="w-path" class="pill pill-accent" hidden></a><a id="w-open" target="_blank" rel="noopener" class="pill">Open original ↗</a></div>
+        <div class="w-src" id="w-src"></div>
+        <details class="desc" id="w-desc"><summary>Abstract</summary><p id="w-abs"></p></details>
+        <div id="w-problems"></div>
+      </div>
+      <aside class="secondary">
+        <div id="lpanel"></div>
+        <div class="list" id="upnext"></div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="v-map" class="view">
+    <div id="map-wrap">
+      <svg id="map"></svg>
+      <div class="map-key"><span><i class="k-known"></i>Known</span><span><i class="k-open"></i>Open</span></div>
+    </div>
+    <aside id="panel" class="panel"><button class="x" id="panel-x" aria-label="Close">×</button><div id="panel-body"></div></aside>
+  </section>
+
+  <section id="v-problems" class="view">
+    <div class="narrow">
+      <div class="row-head"><h2>Open problems by difficulty</h2>
+        <details class="how"><summary>How is this scored?</summary><div id="weights"></div><code id="formula"></code></details>
+      </div>
+      <ol class="plist" id="plist"></ol>
+    </div>
+  </section>
+
+  <section id="v-history" class="view">
+    <div class="narrow">
+      <div class="row-head"><h2>History</h2><button class="pill" id="clear">Clear</button></div>
+      <div class="total" id="total"></div>
+      <div id="topics-bars"></div>
+      <div class="grid" id="hgrid"></div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="feed.js"></script>
+<script src="thumbs.js"></script>
+<script src="meta.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

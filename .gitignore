@@ -1,0 +1,5 @@
+.claude/
+.pdfcache/
+__pycache__/
+*.pyc
+.vercel
