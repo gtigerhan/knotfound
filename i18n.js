@@ -85,6 +85,8 @@ Object.assign(KO, {
     "풀고 싶은 문제를 적어 보세요. 기반 개념, 알려진 결과, 아직 열린 문제, 최신 논문을 한눈에 보여 드립니다.",
   "e.g. Can machine learning predict the unknotting number of a knot?": "예: 머신러닝으로 매듭의 풀림수를 예측할 수 있을까?",
   "Map it": "지도 만들기", "Try:": "예시:",
+  "Your idea is closest to {x}": "이 문제와 가장 가까워요: {x}", "Start by reading this": "이 논문부터 읽어 보면 좋아요",
+  "Then try this: {q}": "그다음엔 이걸 해 보세요: {q}",
   "Foundations": "기초 개념", "Known results": "알려진 결과", "Open problems": "미해결 문제", "Recent papers": "최신 논문", "Your idea": "나의 아이디어",
   "Open problem": "미해결 문제", "Closest open problem": "가장 가까운 미해결 문제", "Most related paper": "가장 관련 있는 논문",
   "A question to start with": "시작해 볼 질문", "Difficulty": "난이도",

@@ -564,45 +564,47 @@ function buildIdeaMap(q) {
 }
 
 function ideaNodeHTML(it) {
-  if (it.kind === "idea") return `<div class="im-node idea" data-key="idea"><div class="im-k">${t("Your idea")}</div><div class="im-t">${esc(ideaQuery)}</div></div>`;
+  if (it.kind === "idea") return `<div class="im-node idea" data-key="idea"><div class="im-t">${esc(ideaQuery)}</div></div>`;
   if (it.kind === "concept" || it.kind === "paper") {
     const d = DOC[it.id];
-    return `<a class="im-node ${it.kind}" data-key="${esc(it.key)}" href="/watch/${encodeURIComponent(d.id)}">
-      <div class="im-k">${it.kind === "concept" ? t("Concept") : `${esc(byline(d))} · ${d.year}`}</div><div class="im-t">${esc(dt(d))}</div></a>`;
+    return `<a class="im-node doc ${it.kind}" data-key="${esc(it.key)}" href="/watch/${encodeURIComponent(d.id)}" title="${esc(dt(d))}">
+      <span class="im-th">${thumb(d, false)}</span><span class="im-t">${esc(dt(d))}</span></a>`;
   }
   const n = NODE[it.id];
-  const extra = it.kind === "open" ? `<span class="im-diff">${difficulty(n)}</span>` : "";
-  return `<a class="im-node ${it.kind}" data-key="${esc(it.key)}" href="/map/${n.id}${location.search}">
-    <div class="im-k">${it.kind === "open" ? t("Open problem") : t("Proved {y}", { y: n.year })}${extra}</div><div class="im-t">${esc(n.title)}</div></a>`;
+  return `<a class="im-node ${it.kind}" data-key="${esc(it.key)}" href="/map/${n.id}${location.search}" title="${esc(n.title)}">
+    <span class="im-t">${esc(n.title)}</span>${it.kind === "open" ? `<span class="im-diff">${difficulty(n)}</span>` : ""}</a>`;
 }
 
 let ideaQuery = "", ideaMap = null;
+const KNOT_AVATAR = `<span class="ava"><svg viewBox="0 0 40 40"><path d="M20 5c8 0 12 7 9 13s-15 9-18 15 3 6 9 4 12-9 9-17S12 8 9 14s3 13 11 19" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></span>`;
 function renderIdea(q) {
   ideaQuery = q || "";
   $("#idea-input").value = ideaQuery;
+  $("#v-map").classList.toggle("has-idea", !!ideaQuery);
   const out = $("#idea-out");
-  if (!ideaQuery) { out.innerHTML = ""; ideaMap = null; $("#idea-empty").hidden = false; return; }
-  $("#idea-empty").hidden = true;
+  if (!ideaQuery) { out.innerHTML = ""; ideaMap = null; return; }
   ideaMap = buildIdeaMap(ideaQuery);
-  if (!ideaMap) { out.innerHTML = `<div class="empty">${t("No close matches yet. Try words like knot, polynomial, slice, surgery or unknotting.")}</div>`; return; }
+  if (!ideaMap) { out.innerHTML = `<div class="im-chat"><div class="bub">${KNOT_AVATAR}<div class="b">${t("No close matches yet. Try words like knot, polynomial, slice, surgery or unknotting.")}</div></div></div>`; return; }
   const { cols, opens, papers, chain } = ideaMap;
   const top = opens[0], paper = papers[0];
   const start = paper ? pathTo([paper.id]) : chain;
   const firstStep = start.find(x => !isDone(x)) || start[0];
-  let cards = "";
-  if (top) cards += `<a class="im-card" href="/map/${top.id}${location.search}"><div class="im-ck">${t("Closest open problem")}</div><div class="im-ct">${esc(top.title)}</div>
-      <div class="im-cm">${t("Difficulty")} <b>${difficulty(top)}</b> · ${tier(difficulty(top))}</div></a>`;
-  if (paper) cards += `<a class="im-card" href="/watch/${encodeURIComponent(paper.id)}"><div class="im-ck">${t("Most related paper")}</div><div class="im-ct">${esc(paper.title)}</div>
-      <div class="im-cm">${esc(byline(paper))} · ${paper.year} · ${lenShort(paper)}</div></a>`;
-  if (top && top.entry && top.entry[0]) cards += `<div class="im-card q"><div class="im-ck">${t("A question to start with")}</div><div class="im-ct sm">${esc(top.entry[0])}</div>
-      ${firstStep && start.length > 1 ? `<a class="im-cm link" href="${listHref(firstStep, "path:" + (paper ? paper.id : start[start.length - 1]))}">${t("Start from basics ({n} steps)", { n: start.length })} →</a>` : ""}</div>`;
-  out.innerHTML = `<div class="im-cards">${cards}</div>
+  // the answer, as friendly speech bubbles
+  let chat = "";
+  if (top) chat += `<div class="bub">${KNOT_AVATAR}<a class="b" href="/map/${top.id}${location.search}">${t("Your idea is closest to {x}", { x: `<b>${esc(top.title)}</b>` })}
+      <span class="im-diff">${difficulty(top)}</span> <span class="b-sub">${tier(difficulty(top))}</span></a></div>`;
+  if (paper) chat += `<div class="bub">${KNOT_AVATAR}<div class="b">${t("Start by reading this")}
+      <a class="b-doc" href="/watch/${encodeURIComponent(paper.id)}">${thumb(paper, false)}<span><span class="b-dt">${esc(paper.title)}</span><span class="b-sub">${esc(byline(paper))} · ${paper.year} · ${lenShort(paper)}</span></span></a></div></div>`;
+  if (top && top.entry && top.entry[0]) chat += `<div class="bub">${KNOT_AVATAR}<div class="b">${t("Then try this: {q}", { q: esc(top.entry[0]) })}
+      ${firstStep && start.length > 1 ? `<a class="b-btn" href="${listHref(firstStep, "path:" + (paper ? paper.id : start[start.length - 1]))}">${t("Start from basics ({n} steps)", { n: start.length })} →</a>` : ""}</div></div>`;
+  out.innerHTML = `<div class="im-chat">${chat}</div>
     <div class="im-wrap"><div class="im-board" id="im-board" style="--cols:${cols.length}">
       <svg class="im-edges" id="im-edges"></svg>
-      ${cols.map(c => `<div class="im-col" data-col="${c.key}"><div class="im-h">${c.title}</div>${c.items.map(ideaNodeHTML).join("")}</div>`).join("")}
+      ${cols.map(c => `<div class="im-col" data-col="${c.key}">${c.items.map(ideaNodeHTML).join("")}</div>`).join("")}
     </div></div>`;
   requestAnimationFrame(drawIdeaEdges); setTimeout(drawIdeaEdges, 60);
   if (document.fonts) document.fonts.ready.then(drawIdeaEdges);
+  out.querySelectorAll("img").forEach(i => i.complete || i.addEventListener("load", drawIdeaEdges, { once: true }));
 }
 function drawIdeaEdges() {
   const board = $("#im-board"), svgEl = $("#im-edges"); if (!board || !ideaMap) return;
@@ -632,7 +634,7 @@ function renderIdeaExamples() {
   const ex = LANG === "ko"
     ? ["머신러닝으로 매듭의 풀림수를 예측할 수 있을까?", "존스 다항식만으로 풀린 매듭을 알아낼 수 있을까?", "4차원에서 원판을 감싸는 매듭은 어떤 것일까?", "쌍곡 부피와 양자 불변량은 어떤 관계일까?"]
     : ["Can machine learning predict the unknotting number of a knot?", "Is the Jones polynomial enough to detect the unknot?", "Which knots bound a disk in 4 dimensions?", "How does hyperbolic volume relate to quantum invariants?"];
-  $("#idea-ex").innerHTML = `<span>${t("Try:")}</span>` + ex.map(x => `<a class="chip" href="/map?q=${encodeURIComponent(x)}">${esc(x)}</a>`).join("");
+  $("#idea-ex").innerHTML = ex.map(x => `<li><a href="/map?q=${encodeURIComponent(x)}">${esc(x)}</a></li>`).join("");
 }
 renderIdeaExamples();
 
