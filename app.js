@@ -131,7 +131,8 @@ function lenLong(d) {
   return `${m.pages ? m.pages + " pages" : m.words.toLocaleString() + " words"} · ~${dur(readMin(d))} read`;
 }
 function thumb(d, hover = true) {
-  const src = THUMB[d.id] || d.thumb || borrowed(d);
+  let src = THUMB[d.id] || d.thumb || borrowed(d);
+  if (src && !/^(https?:)?\//.test(src)) src = "/" + src;
   return `<div class="thumb">${src ? `<img loading="lazy" src="${esc(src)}" alt="">` : knotSVG(d.id, TCOLOR[d.topics[0]] || "#555")}
     <span class="badge">${lenShort(d)}</span>
     ${hover ? `<div class="hov"><div class="hov-len">${d.kind === "paper" ? "Paper" : "Wikipedia"}${lenLong(d) ? " · " + lenLong(d) : ""}</div><p>${esc(d.abstract)}</p></div>` : ""}</div>`;
@@ -221,7 +222,7 @@ function getList(lid) {
   return { ...p, items: pathTo(p.targets) };
 }
 const nextUndone = l => l.items.find(id => !isDone(id)) || l.items[0];
-const listHref = (id, lid) => `#/watch/${encodeURIComponent(id)}?list=${encodeURIComponent(lid)}`;
+const listHref = (id, lid) => `/watch/${encodeURIComponent(id)}?list=${encodeURIComponent(lid)}`;
 function listCard(l) {
   const done = l.items.filter(isDone).length, mins = l.items.reduce((s, id) => s + readMin(DOC[id]), 0);
   const first = DOC[nextUndone(l)], goal = DOC[l.items[l.items.length - 1]];
@@ -282,7 +283,7 @@ function renderListPanel() {
   const cur = box.querySelector(".cur"); if (cur) cur.parentNode.scrollTop = cur.offsetTop - cur.parentNode.offsetTop - 60;
 }
 function renderWatch(id, lid) {
-  const d = DOC[id]; if (!d) return go("#/");
+  const d = DOC[id]; if (!d) return go("/");
   watching = id;
   curList = getList(lid);
   if (curList && !curList.items.includes(id)) curList = null;
@@ -302,7 +303,7 @@ function renderWatch(id, lid) {
   if (curList) {
     const nx = curList.items[curList.items.indexOf(id) + 1];
     $("#w-path").innerHTML = nx ? `Next step: ${esc(DOC[nx].title)} →` : "Path complete ✓";
-    $("#w-path").href = nx ? listHref(nx, curList.id) : "#/";
+    $("#w-path").href = nx ? listHref(nx, curList.id) : "/";
     $("#w-path").hidden = false;
   } else if (pth.length > 1) {
     $("#w-path").textContent = `Start from basics (${pth.length} steps)`;
@@ -313,7 +314,7 @@ function renderWatch(id, lid) {
   $("#w-abs").textContent = d.abstract;
   $("#w-desc").open = false;
   const probs = OPEN.filter(n => d.topics.some(t => nodeTopics(n).includes(t)));
-  $("#w-problems").innerHTML = probs.length ? `<div class="related"><b>Open problems here</b>${probs.map(n => `<a class="chip" href="#/map/${n.id}">${esc(n.title)}</a>`).join("")}</div>` : "";
+  $("#w-problems").innerHTML = probs.length ? `<div class="related"><b>Open problems here</b>${probs.map(n => `<a class="chip" href="/map/${n.id}">${esc(n.title)}</a>`).join("")}</div>` : "";
   profile.last[id] = Date.now(); save();
   lastUpKey = ""; renderUpNext();
 }
@@ -341,7 +342,7 @@ async function loadArticle(d) {
     doc.querySelectorAll("a[href]").forEach(a => {
       const h = a.getAttribute("href");
       const m = h.match(/^\.\/([^#?]+)/);
-      if (m && WIKI_BY_TITLE[decodeURIComponent(m[1])]) a.setAttribute("href", "#/watch/" + encodeURIComponent(WIKI_BY_TITLE[decodeURIComponent(m[1])]));
+      if (m && WIKI_BY_TITLE[decodeURIComponent(m[1])]) a.setAttribute("href", "/watch/" + encodeURIComponent(WIKI_BY_TITLE[decodeURIComponent(m[1])]));
       else { a.href = m ? "https://en.wikipedia.org/wiki/" + m[1] : new URL(h, "https://en.wikipedia.org/wiki/").href; a.target = "_blank"; a.rel = "noopener"; }
     });
     doc.querySelectorAll("img[src^='//'],img[srcset]").forEach(i => { if (i.getAttribute("src")?.startsWith("//")) i.src = "https:" + i.getAttribute("src"); i.removeAttribute("srcset"); });
@@ -444,7 +445,7 @@ root.append("g").selectAll("text").data(AREAS).join("text").attr("class", "area-
 const linkSel = root.append("g").selectAll("line").data(links).join("line").attr("class", "link")
   .attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
 const nodeSel = root.append("g").selectAll("g").data(nodes).join("g").attr("class", d => "node " + d.type)
-  .attr("transform", d => `translate(${d.x},${d.y})`).on("click", (e, d) => { e.stopPropagation(); go("#/map/" + d.id); });
+  .attr("transform", d => `translate(${d.x},${d.y})`).on("click", (e, d) => { e.stopPropagation(); go("/map/" + d.id); });
 nodeSel.append("circle").attr("class", "core").attr("fill", d => d.type === "known" ? TCOLOR[nodeTopics(d)[0]] : null);
 nodeSel.append("text").attr("text-anchor", "middle").text(d => d.title.length > 30 ? d.title.slice(0, 28) + "…" : d.title);
 function sizeNodes() { nodeSel.select(".core").attr("r", radius); nodeSel.select("text").attr("y", d => radius(d) + 14); }
@@ -473,13 +474,13 @@ function openPanel(id) {
     h += `<div class="score"><b>${s}</b><span>/ 100 · ${tier(s)}</span></div>
       <details><summary>First steps</summary><ol>${n.entry.map(e => `<li>${esc(e)}</li>`).join("")}</ol></details>`;
   }
-  if (n.builds.length) h += `<div class="sec">Builds on</div>${n.builds.map(b => `<a class="chip" href="#/map/${b}">${esc(NODE[b].title)}</a>`).join("")}`;
+  if (n.builds.length) h += `<div class="sec">Builds on</div>${n.builds.map(b => `<a class="chip" href="/map/${b}">${esc(NODE[b].title)}</a>`).join("")}`;
   h += `<div class="sec">Read</div><div class="list">${docs.map(d => mini({ id: d.id })).join("")}</div>`;
   $("#panel-body").innerHTML = h;
   $("#panel").classList.add("on");
   highlight(); setTimeout(() => focusNode(id), 220);
 }
-function closePanel() { if (view === "map" && panelNode) go("#/map"); }
+function closePanel() { if (view === "map" && panelNode) go("/map"); }
 $("#panel-x").onclick = closePanel;
 
 // ================= HISTORY =================
@@ -498,9 +499,11 @@ $("#clear").onclick = () => { profile = { time: {}, last: {} }; save(); renderHi
 
 // ================= ROUTER =================
 let view = "home";
-function go(h) { if (location.hash !== h) location.hash = h; else route(); }
+function go(h) { if (location.pathname + location.search !== h) history.pushState(null, "", h); route(); }
+// old "#/…" links keep working
+if (location.hash.startsWith("#/")) history.replaceState(null, "", location.hash.slice(1));
 function route() {
-  const [hpath, qs = ""] = (location.hash || "#/").split("?");
+  const hpath = location.pathname, qs = location.search.slice(1);
   const [, v = "", arg] = hpath.split("/");
   const id = arg ? decodeURIComponent(hpath.split("/").slice(2).join("/")) : null;
   const lid = new URLSearchParams(qs).get("list");
@@ -515,14 +518,16 @@ function route() {
   if (view === "history") renderHistory();
   if (view === "map") { if (id) openPanel(id); else { panelNode = null; $("#panel").classList.remove("on"); highlight(); } }
 }
-addEventListener("hashchange", route);
+addEventListener("popstate", route);
 
 document.addEventListener("click", e => {
-  const d = e.target.closest("[data-doc]"); if (d) { go("#/watch/" + encodeURIComponent(d.dataset.doc)); return; }
-  const n = e.target.closest("[data-node]"); if (n) { go("#/map/" + n.dataset.node); return; }
+  const a = e.target.closest("a[href^='/']");
+  if (a && !a.target && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) { e.preventDefault(); go(a.getAttribute("href")); return; }
+  const d = e.target.closest("[data-doc]"); if (d) { go("/watch/" + encodeURIComponent(d.dataset.doc)); return; }
+  const n = e.target.closest("[data-node]"); if (n) { go("/map/" + n.dataset.node); return; }
   const t = e.target.closest("[data-topic]"); if (t) { topic = t.dataset.topic || null; renderHome(); scrollTo(0, 0); }
 });
-$("#search-form").onsubmit = e => { e.preventDefault(); query = $("#search").value.trim(); topic = null; go("#/"); renderHome(); };
+$("#search-form").onsubmit = e => { e.preventDefault(); query = $("#search").value.trim(); topic = null; go("/"); renderHome(); };
 $("#search").addEventListener("input", e => { if (!e.target.value) { query = ""; if (view === "home") renderHome(); } });
 
 route();

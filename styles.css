@@ -56,7 +56,6 @@ main{padding:var(--top) 0 0 var(--side)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:40px 16px;padding:12px 24px 48px}
 .card{cursor:pointer;min-width:0}
 .thumb{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#fff}
-.card:hover .thumb{border-radius:0;transition:border-radius .2s}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb svg{width:100%;height:100%;display:block}
 .badge{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.78);color:#fff;font-size:12px;font-weight:600;padding:1px 5px;border-radius:4px}
@@ -96,8 +95,6 @@ main{padding:var(--top) 0 0 var(--side)}
 .lcount b{font-size:22px}
 .lcard .c-title{margin-top:10px}
 .lthumb .badge{display:none}
-.lcard:hover .thumb{border-radius:0}
-.lcard:hover .lcount{border-radius:0}
 
 /* path panel on the reading page */
 #lpanel:not(:empty){border:1px solid var(--line);border-radius:12px;margin-bottom:16px;overflow:hidden}
