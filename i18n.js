@@ -79,7 +79,7 @@ const dt = d => (LANG === "ko" && d.kind === "article" && KO_WIKI[d.title]) || d
 // keep the English text of every map item for matching ideas, whatever the display language
 NODES.forEach(n => n._en = { title: n.title, text: n.statement || n.summary || "" });
 Object.assign(KO, {
-  "Idea map": "아이디어 지도",
+  "Idea": "아이디어",
   "Turn an idea into a research map": "아이디어를 연구 지도로",
   "Describe a problem you'd like to work on. You'll get what it builds on, what's known, what's still open and the latest papers.":
     "풀고 싶은 문제를 적어 보세요. 기반 개념, 알려진 결과, 아직 열린 문제, 최신 논문을 한눈에 보여 드립니다.",

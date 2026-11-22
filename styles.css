@@ -395,3 +395,4 @@ a.b:hover{background:var(--bg3)}
 .im-node.idea::before{content:"";position:absolute;left:-7px;bottom:10px;border:7px solid transparent;border-right-color:var(--accent);border-left:0}
 .im-node.idea .im-t{font-size:14px;-webkit-line-clamp:6}
 @media (max-width:640px){.idea-hero{padding-top:2vh}.prompt{padding-left:16px}.b-doc{grid-template-columns:90px minmax(0,1fr)}}
+.idea-hero h2{margin-bottom:28px}
