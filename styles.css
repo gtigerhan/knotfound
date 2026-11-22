@@ -14,12 +14,16 @@ button,input,textarea{font:inherit;color:inherit}
 h1,h2{margin:0;font-weight:600}
 h2{font-size:20px}
 
-/* custom scrollbars */
-*{scrollbar-width:thin;scrollbar-color:var(--accent) transparent}
+/* scrollbars: the page scroller is red, everything inside it is a quiet gray */
+:root{--sb:#c2c2c2;--sb-hover:#9a9a9a}
+@media (prefers-color-scheme:dark){:root{--sb:#3d3d3d;--sb-hover:#5a5a5a}}
+*{scrollbar-width:thin;scrollbar-color:var(--sb) transparent}
+html,#map-wrap{scrollbar-color:var(--accent) transparent}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--accent) 60%,transparent);border-radius:10px;border:3px solid var(--bg)}
-::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+::-webkit-scrollbar-thumb{background:var(--sb);border-radius:10px;border:3px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--sb-hover)}
+html::-webkit-scrollbar-thumb,#map-wrap::-webkit-scrollbar-thumb{background:var(--accent)}
 ::-webkit-scrollbar-corner{background:transparent}
 
 /* top bar */
